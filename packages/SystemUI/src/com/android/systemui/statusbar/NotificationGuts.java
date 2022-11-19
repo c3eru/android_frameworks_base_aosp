@@ -19,7 +19,10 @@ package com.android.systemui.statusbar;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.app.INotificationManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
@@ -30,25 +33,28 @@ import android.os.Handler;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.service.notification.NotificationListenerService;
-import android.service.notification.NotificationListenerService.Ranking;
 import android.service.notification.StatusBarNotification;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewAnimationUtils;
+import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityEvent;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import com.android.internal.logging.MetricsLogger;
-import com.android.internal.logging.MetricsProto.MetricsEvent;
+import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
 import com.android.settingslib.Utils;
 import com.android.systemui.Interpolators;
 import com.android.systemui.R;
+import com.android.systemui.plugins.statusbar.NotificationMenuRowPlugin;
+import com.android.systemui.plugins.statusbar.NotificationMenuRowPlugin.MenuItem;
 import com.android.systemui.statusbar.stack.StackStateAnimator;
-import com.android.systemui.tuner.TunerService;
 
 import java.util.Set;
 
@@ -58,41 +64,77 @@ import static android.service.notification.NotificationListenerService.Ranking.l
 /**
  * The guts of a notification revealed when performing a long press.
  */
-public class NotificationGuts extends LinearLayout implements TunerService.Tunable {
-    public static final String SHOW_SLIDER = "show_importance_slider";
-
+public class NotificationGuts extends FrameLayout {
+    private static final String TAG = "NotificationGuts";
     private static final long CLOSE_GUTS_DELAY = 8000;
 
+<<<<<<< HEAD
     protected Drawable mBackground;
     protected int mClipTopAmount;
     protected int mActualHeight;
+=======
+    private Drawable mBackground;
+    private int mClipTopAmount;
+    private int mClipBottomAmount;
+    private int mActualHeight;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     private boolean mExposed;
-    private INotificationManager mINotificationManager;
-    private int mStartingUserImportance;
-    private int mNotificationImportance;
-    private boolean mShowSlider;
-
-    private SeekBar mSeekBar;
-    private ImageView mAutoButton;
-    private ColorStateList mActiveSliderTint;
-    private ColorStateList mInactiveSliderTint;
-    private float mActiveSliderAlpha = 1.0f;
-    private float mInactiveSliderAlpha;
-    private TextView mImportanceSummary;
-    private TextView mImportanceTitle;
-    private boolean mAuto;
-
-    private RadioButton mBlock;
-    private RadioButton mSilent;
-    private RadioButton mReset;
 
     private Handler mHandler;
     private Runnable mFalsingCheck;
     private boolean mNeedsFalsingProtection;
-    private OnGutsClosedListener mListener;
+    private OnGutsClosedListener mClosedListener;
+    private OnHeightChangedListener mHeightListener;
+
+    private GutsContent mGutsContent;
+
+    public interface GutsContent {
+
+        public void setGutsParent(NotificationGuts listener);
+
+        /**
+         * @return the view to be shown in the notification guts.
+         */
+        public View getContentView();
+
+        /**
+         * @return the actual height of the content.
+         */
+        public int getActualHeight();
+
+        /**
+         * Called when the guts view have been told to close, typically after an outside
+         * interaction.
+         *
+         * @param save whether the state should be saved.
+         * @param force whether the guts view should be forced closed regardless of state.
+         * @return if closing the view has been handled.
+         */
+        public boolean handleCloseControls(boolean save, boolean force);
+
+        /**
+         * @return whether the notification associated with these guts is set to be removed.
+         */
+        public boolean willBeRemoved();
+
+        /**
+         * @return whether these guts are a leavebehind (e.g. {@link NotificationSnooze}).
+         */
+        public default boolean isLeavebehind() {
+            return false;
+        }
+    }
 
     public interface OnGutsClosedListener {
         public void onGutsClosed(NotificationGuts guts);
+    }
+
+    public interface OnHeightChangedListener {
+        public void onHeightChanged(NotificationGuts guts);
+    }
+
+    interface OnSettingsClickListener {
+        void onClick(View v, int appUid);
     }
 
     public NotificationGuts(Context context, AttributeSet attrs) {
@@ -103,27 +145,27 @@ public class NotificationGuts extends LinearLayout implements TunerService.Tunab
             @Override
             public void run() {
                 if (mNeedsFalsingProtection && mExposed) {
-                    closeControls(-1 /* x */, -1 /* y */, true /* notify */);
+                    closeControls(-1 /* x */, -1 /* y */, false /* save */, false /* force */);
                 }
             }
         };
-        final TypedArray ta =
-                context.obtainStyledAttributes(attrs, com.android.internal.R.styleable.Theme, 0, 0);
-        mInactiveSliderAlpha =
-                ta.getFloat(com.android.internal.R.styleable.Theme_disabledAlpha, 0.5f);
+        final TypedArray ta = context.obtainStyledAttributes(attrs,
+                com.android.internal.R.styleable.Theme, 0, 0);
         ta.recycle();
     }
 
-    @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        TunerService.get(mContext).addTunable(this, SHOW_SLIDER);
+    public NotificationGuts(Context context) {
+        this(context, null);
     }
 
-    @Override
-    protected void onDetachedFromWindow() {
-        TunerService.get(mContext).removeTunable(this);
-        super.onDetachedFromWindow();
+    public void setGutsContent(GutsContent content) {
+        mGutsContent = content;
+        removeAllViews();
+        addView(mGutsContent.getContentView());
+    }
+
+    public GutsContent getGutsContent() {
+        return mGutsContent;
     }
 
     public void resetFalsingCheck() {
@@ -139,8 +181,10 @@ public class NotificationGuts extends LinearLayout implements TunerService.Tunab
     }
 
     private void draw(Canvas canvas, Drawable drawable) {
-        if (drawable != null) {
-            drawable.setBounds(0, mClipTopAmount, getWidth(), mActualHeight);
+        int top = mClipTopAmount;
+        int bottom = mActualHeight - mClipBottomAmount;
+        if (drawable != null && top < bottom) {
+            drawable.setBounds(0, top, getWidth(), bottom);
             drawable.draw(canvas);
         }
     }
@@ -177,51 +221,17 @@ public class NotificationGuts extends LinearLayout implements TunerService.Tunab
         }
     }
 
-    void bindImportance(final PackageManager pm, final StatusBarNotification sbn,
-            final Set<String> nonBlockablePkgs, final int importance) {
-        mINotificationManager = INotificationManager.Stub.asInterface(
-                ServiceManager.getService(Context.NOTIFICATION_SERVICE));
-        mStartingUserImportance = NotificationListenerService.Ranking.IMPORTANCE_UNSPECIFIED;
-        try {
-            mStartingUserImportance =
-                    mINotificationManager.getImportance(sbn.getPackageName(), sbn.getUid());
-        } catch (RemoteException e) {}
-        mNotificationImportance = importance;
-
-        final View importanceSlider = findViewById(R.id.importance_slider);
-        final View importanceButtons = findViewById(R.id.importance_buttons);
-        final View cantTouchThis = findViewById(R.id.cant_silence_or_block);
-
-        final boolean essentialPackage =
-                (nonBlockablePkgs != null && nonBlockablePkgs.contains(sbn.getPackageName()));
-        if (essentialPackage) {
-            importanceButtons.setVisibility(View.GONE);
-            importanceSlider.setVisibility(View.GONE);
-            cantTouchThis.setVisibility(View.VISIBLE);
-        } else {
-            cantTouchThis.setVisibility(View.GONE);
-
-            boolean nonBlockable = false;
-            try {
-                final PackageInfo info =
-                        pm.getPackageInfo(sbn.getPackageName(), PackageManager.GET_SIGNATURES);
-                nonBlockable = Utils.isSystemPackage(getResources(), pm, info);
-            } catch (PackageManager.NameNotFoundException e) {
-                // unlikely.
-            }
-
-            if (mShowSlider) {
-                bindSlider(importanceSlider, nonBlockable);
-                importanceSlider.setVisibility(View.VISIBLE);
-                importanceButtons.setVisibility(View.GONE);
-            } else {
-                bindToggles(importanceButtons, mStartingUserImportance, nonBlockable);
-                importanceButtons.setVisibility(View.VISIBLE);
-                importanceSlider.setVisibility(View.GONE);
+    public void closeControls(boolean leavebehinds, boolean controls, int x, int y, boolean force) {
+        if (mGutsContent != null) {
+            if (mGutsContent.isLeavebehind() && leavebehinds) {
+                closeControls(x, y, true /* save */, force);
+            } else if (!mGutsContent.isLeavebehind() && controls) {
+                closeControls(x, y, true /* save */, force);
             }
         }
     }
 
+<<<<<<< HEAD
     public boolean hasImportanceChanged() {
         return mStartingUserImportance != getSelectedImportance();
     }
@@ -396,12 +406,26 @@ public class NotificationGuts extends LinearLayout implements TunerService.Tunab
     }
 
     public void closeControls(int x, int y, boolean notify) {
+=======
+    public void closeControls(int x, int y, boolean save, boolean force) {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         if (getWindowToken() == null) {
-            if (notify && mListener != null) {
-                mListener.onGutsClosed(this);
+            if (mClosedListener != null) {
+                mClosedListener.onGutsClosed(this);
             }
             return;
         }
+
+        if (mGutsContent == null || !mGutsContent.handleCloseControls(save, force)) {
+            animateClose(x, y);
+            setExposed(false, mNeedsFalsingProtection);
+            if (mClosedListener != null) {
+                mClosedListener.onGutsClosed(this);
+            }
+        }
+    }
+
+    private void animateClose(int x, int y) {
         if (x == -1 || y == -1) {
             x = (getLeft() + getRight()) / 2;
             y = (getTop() + getHeight() / 2);
@@ -421,10 +445,6 @@ public class NotificationGuts extends LinearLayout implements TunerService.Tunab
             }
         });
         a.start();
-        setExposed(false, mNeedsFalsingProtection);
-        if (notify && mListener != null) {
-            mListener.onGutsClosed(this);
-        }
     }
 
     public void setActualHeight(int actualHeight) {
@@ -436,8 +456,17 @@ public class NotificationGuts extends LinearLayout implements TunerService.Tunab
         return mActualHeight;
     }
 
+    public int getIntrinsicHeight() {
+        return mGutsContent != null && mExposed ? mGutsContent.getActualHeight() : getHeight();
+    }
+
     public void setClipTopAmount(int clipTopAmount) {
         mClipTopAmount = clipTopAmount;
+        invalidate();
+    }
+
+    public void setClipBottomAmount(int clipBottomAmount) {
+        mClipBottomAmount = clipBottomAmount;
         invalidate();
     }
 
@@ -448,10 +477,21 @@ public class NotificationGuts extends LinearLayout implements TunerService.Tunab
     }
 
     public void setClosedListener(OnGutsClosedListener listener) {
-        mListener = listener;
+        mClosedListener = listener;
+    }
+
+    public void setHeightChangedListener(OnHeightChangedListener listener) {
+        mHeightListener = listener;
+    }
+
+    protected void onHeightChanged() {
+        if (mHeightListener != null) {
+            mHeightListener.onHeightChanged(this);
+        }
     }
 
     public void setExposed(boolean exposed, boolean needsFalsingProtection) {
+        final boolean wasExposed = mExposed;
         mExposed = exposed;
         mNeedsFalsingProtection = needsFalsingProtection;
         if (mExposed && mNeedsFalsingProtection) {
@@ -459,16 +499,20 @@ public class NotificationGuts extends LinearLayout implements TunerService.Tunab
         } else {
             mHandler.removeCallbacks(mFalsingCheck);
         }
-    }
-
-    public boolean areGutsExposed() {
-        return mExposed;
-    }
-
-    @Override
-    public void onTuningChanged(String key, String newValue) {
-        if (SHOW_SLIDER.equals(key)) {
-            mShowSlider = newValue != null && Integer.parseInt(newValue) != 0;
+        if (wasExposed != mExposed && mGutsContent != null) {
+            final View contentView = mGutsContent.getContentView();
+            contentView.sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED);
+            if (mExposed) {
+                contentView.requestAccessibilityFocus();
+            }
         }
+    }
+
+    public boolean willBeRemoved() {
+        return mGutsContent != null ? mGutsContent.willBeRemoved() : false;
+    }
+
+    public boolean isExposed() {
+        return mExposed;
     }
 }

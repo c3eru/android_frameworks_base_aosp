@@ -37,6 +37,7 @@ import android.os.UserHandle;
 import android.os.SystemProperties;
 import android.util.Log;
 
+import com.android.internal.notification.SystemNotificationChannels;
 import com.android.internal.R;
 import com.android.internal.telephony.GsmAlphabet;
 import com.android.internal.telephony.TelephonyProperties;
@@ -138,14 +139,11 @@ public class GpsNetInitiatedHandler {
         public String text;
         public int requestorIdEncoding;
         public int textEncoding;
-        public Bundle extras;
     };
 
     public static class GpsNiResponse {
         /* User response, one of the values in GpsUserResponseType */
         int userResponse;
-        /* Optional extra data to pass with the user response */
-        Bundle extras;
     };
 
     private final BroadcastReceiver mBroadcastReciever = new BroadcastReceiver() {
@@ -248,6 +246,7 @@ public class GpsNetInitiatedHandler {
      * @return true if is considered in user initiated emergency mode for NI purposes
      */
     public boolean getInEmergency() {
+<<<<<<< HEAD
         boolean isInEmergencyExtension =
                 (mCallEndElapsedRealtimeMillis > 0)
                 && ((SystemClock.elapsedRealtime() - mCallEndElapsedRealtimeMillis)
@@ -268,6 +267,10 @@ public class GpsNetInitiatedHandler {
             emergencyExtensionSeconds = 0;
         }
         mEmergencyExtensionMillis = TimeUnit.SECONDS.toMillis(emergencyExtensionSeconds);
+=======
+        boolean isInEmergencyCallback = mTelephonyManager.getEmergencyCallbackMode();
+        return mIsInEmergency || isInEmergencyCallback;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
 
@@ -388,7 +391,8 @@ public class GpsNetInitiatedHandler {
 
         // Construct Notification
         if (mNiNotificationBuilder == null) {
-            mNiNotificationBuilder = new Notification.Builder(mContext)
+            mNiNotificationBuilder = new Notification.Builder(mContext,
+                SystemNotificationChannels.NETWORK_ALERTS)
                     .setSmallIcon(com.android.internal.R.drawable.stat_sys_gps_on)
                     .setWhen(0)
                     .setOngoing(true)

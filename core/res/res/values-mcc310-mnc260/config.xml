@@ -32,6 +32,7 @@
 
     <!-- Flag specifying whether VoLTE TTY is supported -->
     <bool name="config_carrier_volte_tty_supported">false</bool>
+<<<<<<< HEAD
 
     <!-- Flag specifying whether WFC over IMS should be available for carrier: independent of
          carrier provisioning. If false: hard disabled. If true: then depends on carrier
@@ -63,4 +64,6 @@
         <item>311170</item>
     </string-array>
 
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 </resources>

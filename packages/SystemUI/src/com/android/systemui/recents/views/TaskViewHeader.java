@@ -255,13 +255,13 @@ public class TaskViewHeader extends FrameLayout
         SystemServicesProxy ssp = Recents.getSystemServices();
 
         // Initialize the icon and description views
-        mIconView = (ImageView) findViewById(R.id.icon);
+        mIconView = findViewById(R.id.icon);
         mIconView.setOnLongClickListener(this);
         mTitleView = (TextView) findViewById(R.id.title);
         mDismissButton = (ImageView) findViewById(R.id.dismiss_task);
         mLockTaskButton = (ImageView) findViewById(R.id.lock_task);
         if (ssp.hasFreeformWorkspaceSupport()) {
-            mMoveTaskButton = (ImageView) findViewById(R.id.move_task);
+            mMoveTaskButton = findViewById(R.id.move_task);
         }
 
         onConfigurationChanged();
@@ -282,9 +282,17 @@ public class TaskViewHeader extends FrameLayout
         lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.START | Gravity.CENTER_VERTICAL);
         lp.setMarginStart(mHeaderBarHeight);
+<<<<<<< HEAD
         lp.setMarginEnd(mHeaderBarHeight +
                 ((secondaryButton != null ? mHeaderBarHeight : 0)
                 + (tertiaryButton != null ? mHeaderBarHeight : 0)));
+=======
+        lp.setMarginEnd(secondaryButton != null && tertiaryButton != null
+                ? 3 * mHeaderBarHeight
+                : secondaryButton != null || tertiaryButton != null
+                ? 2 * mHeaderBarHeight
+                : mHeaderBarHeight);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         title.setLayoutParams(lp);
         if (secondaryButton != null) {
             lp = new FrameLayout.LayoutParams(mHeaderBarHeight, mHeaderBarHeight, Gravity.END);
@@ -565,7 +573,7 @@ public class TaskViewHeader extends FrameLayout
      * changes.
      */
     public void onTaskDataLoaded() {
-        if (mTask.icon != null) {
+        if (mTask != null && mTask.icon != null) {
             mIconView.setImageDrawable(mTask.icon);
         }
     }

@@ -56,7 +56,7 @@ enum {
 class BpMountService: public BpInterface<IMountService>
 {
 public:
-    BpMountService(const sp<IBinder>& impl)
+    explicit BpMountService(const sp<IBinder>& impl)
         : BpInterface<IMountService>(impl)
     {
     }
@@ -571,7 +571,7 @@ public:
     }
 };
 
-IMPLEMENT_META_INTERFACE(MountService, "IMountService")
+IMPLEMENT_META_INTERFACE(MountService, "android.os.storage.IStorageManager")
 
 // ----------------------------------------------------------------------
 

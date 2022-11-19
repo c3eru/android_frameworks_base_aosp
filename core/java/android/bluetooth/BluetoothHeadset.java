@@ -20,6 +20,7 @@ import android.annotation.SdkConstant;
 import android.annotation.SdkConstant.SdkConstantType;
 import android.content.ComponentName;
 import android.content.Context;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -990,12 +991,50 @@ public final class BluetoothHeadset implements BluetoothProfile {
         return false;
     }
 
+<<<<<<< HEAD
+=======
+    /**
+     * check if in-band ringing is supported for this platform.
+     *
+     * @return true if in-band ringing is supported
+     *         false if in-band ringing is not supported
+     * @hide
+     */
+    public static boolean isInbandRingingSupported(Context context) {
+        return context.getResources().getBoolean(
+                com.android.internal.R.bool.config_bluetooth_hfp_inband_ringing_support);
+    }
+
+    /**
+     * Send Headset the BIND response from AG to report change in the status of the
+     * HF indicators to the headset
+     *
+     * @param ind_id Assigned Number of the indicator (defined by SIG)
+     * @param ind_status
+     * possible values- false-Indicator is disabled, no value changes shall be sent for this indicator
+     *                  true-Indicator is enabled, value changes may be sent for this indicator
+     * @hide
+     */
+    public void bindResponse(int ind_id, boolean ind_status) {
+        if (mService != null && isEnabled()) {
+            try {
+                mService.bindResponse(ind_id, ind_status);
+            } catch (RemoteException e) {
+                Log.e(TAG, e.toString());
+            }
+        } else {
+            Log.w(TAG, "Proxy not attached to service");
+            if (DBG) Log.d(TAG, Log.getStackTraceString(new Throwable()));
+        }
+    }
+
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     private final IBluetoothProfileServiceConnection mConnection
             = new IBluetoothProfileServiceConnection.Stub()  {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             if (DBG) Log.d(TAG, "Proxy object connected");
-            mService = IBluetoothHeadset.Stub.asInterface(service);
+            mService = IBluetoothHeadset.Stub.asInterface(Binder.allowBlocking(service));
             mHandler.sendMessage(mHandler.obtainMessage(
                     MESSAGE_HEADSET_SERVICE_CONNECTED));
         }

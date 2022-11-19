@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.MemoryFile;
 import android.os.MessageQueue;
 import android.util.Log;
 import android.util.SparseArray;
@@ -31,6 +32,8 @@ import dalvik.system.CloseGuard;
 
 import com.android.internal.annotations.GuardedBy;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,7 +49,12 @@ import java.util.Map;
  */
 public class SystemSensorManager extends SensorManager {
     //TODO: disable extra logging before release
+<<<<<<< HEAD
     private static boolean DEBUG_DYNAMIC_SENSOR = true;
+=======
+    private static final boolean DEBUG_DYNAMIC_SENSOR = true;
+    private static final int MIN_DIRECT_CHANNEL_BUFFER_SIZE = 104;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     private static final int MAX_LISTENER_COUNT = 128;
 
     private static native void nativeClassInit();
@@ -55,6 +63,16 @@ public class SystemSensorManager extends SensorManager {
             Sensor sensor, int index);
     private static native void nativeGetDynamicSensors(long nativeInstance, List<Sensor> list);
     private static native boolean nativeIsDataInjectionEnabled(long nativeInstance);
+
+    private static native int nativeCreateDirectChannel(
+            long nativeInstance, long size, int channelType, int fd, HardwareBuffer buffer);
+    private static native void nativeDestroyDirectChannel(
+            long nativeInstance, int channelHandle);
+    private static native int nativeConfigDirectChannel(
+            long nativeInstance, int channelHandle, int sensorHandle, int rate);
+
+    private static native int nativeSetOperationParameter(
+            long nativeInstance, int type, float[] floatValues, int[] intValues);
 
     private static final Object sLock = new Object();
     @GuardedBy("sLock")
@@ -283,17 +301,22 @@ public class SystemSensorManager extends SensorManager {
                 }
                 // Initialize a client for data_injection.
                 if (sInjectEventQueue == null) {
-                    sInjectEventQueue = new InjectEventQueue(mMainLooper, this,
-                            mContext.getPackageName());
+                    try {
+                        sInjectEventQueue = new InjectEventQueue(
+                                mMainLooper, this, mContext.getPackageName());
+                    } catch (RuntimeException e) {
+                        Log.e(TAG, "Cannot create InjectEventQueue: " + e);
+                    }
                 }
+                return sInjectEventQueue != null;
             } else {
                 // If data injection is being disabled clean up the native resources.
                 if (sInjectEventQueue != null) {
                     sInjectEventQueue.dispose();
                     sInjectEventQueue = null;
                 }
+                return true;
             }
-            return true;
         }
     }
 
@@ -320,7 +343,10 @@ public class SystemSensorManager extends SensorManager {
 
         if (sensor.getReportingMode() == Sensor.REPORTING_MODE_ONE_SHOT) {
             synchronized(mTriggerListeners) {
-                for (TriggerEventListener l: mTriggerListeners.keySet()) {
+                HashMap<TriggerEventListener, TriggerEventQueue> triggerListeners =
+                    new HashMap<TriggerEventListener, TriggerEventQueue>(mTriggerListeners);
+
+                for (TriggerEventListener l: triggerListeners.keySet()) {
                     if (DEBUG_DYNAMIC_SENSOR){
                         Log.i(TAG, "removed trigger listener" + l.toString() +
                                    " due to sensor disconnection");
@@ -330,7 +356,10 @@ public class SystemSensorManager extends SensorManager {
             }
         } else {
             synchronized(mSensorListeners) {
-                for (SensorEventListener l: mSensorListeners.keySet()) {
+                HashMap<SensorEventListener, SensorEventQueue> sensorListeners =
+                    new HashMap<SensorEventListener, SensorEventQueue>(mSensorListeners);
+
+                for (SensorEventListener l: sensorListeners.keySet()) {
                     if (DEBUG_DYNAMIC_SENSOR){
                         Log.i(TAG, "removed event listener" + l.toString() +
                                    " due to sensor disconnection");
@@ -494,6 +523,102 @@ public class SystemSensorManager extends SensorManager {
             }
         }
         return changed;
+    }
+
+    /** @hide */
+    protected int configureDirectChannelImpl(
+            SensorDirectChannel channel, Sensor sensor, int rate) {
+        if (!channel.isOpen()) {
+            throw new IllegalStateException("channel is closed");
+        }
+
+        if (rate < SensorDirectChannel.RATE_STOP
+                || rate > SensorDirectChannel.RATE_VERY_FAST) {
+            throw new IllegalArgumentException("rate parameter invalid");
+        }
+
+        if (sensor == null && rate != SensorDirectChannel.RATE_STOP) {
+            // the stop all sensors case
+            throw new IllegalArgumentException(
+                    "when sensor is null, rate can only be DIRECT_RATE_STOP");
+        }
+
+        int sensorHandle = (sensor == null) ? -1 : sensor.getHandle();
+
+        int ret = nativeConfigDirectChannel(
+                mNativeInstance, channel.getNativeHandle(), sensorHandle, rate);
+
+        if (rate == SensorDirectChannel.RATE_STOP) {
+            return (ret == 0) ? 1 : 0;
+        } else {
+            return (ret > 0) ? ret : 0;
+        }
+    }
+
+    /** @hide */
+    protected SensorDirectChannel createDirectChannelImpl(
+            MemoryFile memoryFile, HardwareBuffer hardwareBuffer) {
+        int id;
+        int type;
+        long size;
+        if (memoryFile != null) {
+            int fd;
+            try {
+                fd = memoryFile.getFileDescriptor().getInt$();
+            } catch (IOException e) {
+                throw new IllegalArgumentException("MemoryFile object is not valid");
+            }
+
+            if (memoryFile.length() < MIN_DIRECT_CHANNEL_BUFFER_SIZE) {
+                throw new IllegalArgumentException(
+                        "Size of MemoryFile has to be greater than "
+                        + MIN_DIRECT_CHANNEL_BUFFER_SIZE);
+            }
+
+            size = memoryFile.length();
+            id = nativeCreateDirectChannel(
+                    mNativeInstance, size, SensorDirectChannel.TYPE_MEMORY_FILE, fd, null);
+            if (id <= 0) {
+                throw new UncheckedIOException(
+                        new IOException("create MemoryFile direct channel failed " + id));
+            }
+            type = SensorDirectChannel.TYPE_MEMORY_FILE;
+        } else if (hardwareBuffer != null) {
+            if (hardwareBuffer.getFormat() != HardwareBuffer.BLOB) {
+                throw new IllegalArgumentException("Format of HardwareBuffer must be BLOB");
+            }
+            if (hardwareBuffer.getHeight() != 1) {
+                throw new IllegalArgumentException("Height of HardwareBuffer must be 1");
+            }
+            if (hardwareBuffer.getWidth() < MIN_DIRECT_CHANNEL_BUFFER_SIZE) {
+                throw new IllegalArgumentException(
+                        "Width if HaradwareBuffer must be greater than "
+                        + MIN_DIRECT_CHANNEL_BUFFER_SIZE);
+            }
+            if ((hardwareBuffer.getUsage() & HardwareBuffer.USAGE_SENSOR_DIRECT_DATA) == 0) {
+                throw new IllegalArgumentException(
+                        "HardwareBuffer must set usage flag USAGE_SENSOR_DIRECT_DATA");
+            }
+            size = hardwareBuffer.getWidth();
+            id = nativeCreateDirectChannel(
+                    mNativeInstance, size, SensorDirectChannel.TYPE_HARDWARE_BUFFER,
+                    -1, hardwareBuffer);
+            if (id <= 0) {
+                throw new UncheckedIOException(
+                        new IOException("create HardwareBuffer direct channel failed " + id));
+            }
+            type = SensorDirectChannel.TYPE_HARDWARE_BUFFER;
+        } else {
+            throw new NullPointerException("shared memory object cannot be null");
+        }
+        return new SensorDirectChannel(this, id, type, size);
+    }
+
+    /** @hide */
+    protected void destroyDirectChannelImpl(SensorDirectChannel channel) {
+        if (channel != null) {
+            nativeDestroyDirectChannel(mNativeInstance, channel.getNativeHandle());
+        }
     }
 
     /*
@@ -834,5 +959,10 @@ public class SystemSensorManager extends SensorManager {
         protected void removeSensorEvent(Sensor sensor) {
 
         }
+    }
+
+    protected boolean setOperationParameterImpl(SensorAdditionalInfo parameter) {
+        return nativeSetOperationParameter(
+                mNativeInstance, parameter.type, parameter.floatValues, parameter.intValues) == 0;
     }
 }

@@ -19,6 +19,7 @@
     android:id="@+id/notification_icon_area_inner"
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
+<<<<<<< HEAD
     <com.android.systemui.statusbar.policy.Clock
         android:id="@+id/left_clock"
         android:textAppearance="@style/TextAppearance.StatusBar.Clock"
@@ -35,6 +36,9 @@
         android:src="@drawable/stat_notify_more"
         android:visibility="gone" />
     <com.android.systemui.statusbar.phone.IconMerger
+=======
+    <com.android.systemui.statusbar.phone.NotificationIconContainer
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         android:id="@+id/notificationIcons"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

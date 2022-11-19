@@ -20,7 +20,7 @@ import com.android.i18n.phonenumbers.NumberParseException;
 import com.android.i18n.phonenumbers.PhoneNumberUtil;
 import com.android.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
 import com.android.i18n.phonenumbers.Phonenumber.PhoneNumber;
-import com.android.i18n.phonenumbers.ShortNumberUtil;
+import com.android.i18n.phonenumbers.ShortNumberInfo;
 
 import android.content.Context;
 import android.content.Intent;
@@ -1442,6 +1442,35 @@ public class PhoneNumberUtils
     }
 
     /**
+     * Determines if a {@param phoneNumber} is international if dialed from
+     * {@param defaultCountryIso}.
+     *
+     * @param phoneNumber The phone number.
+     * @param defaultCountryIso The current country ISO.
+     * @return {@code true} if the number is international, {@code false} otherwise.
+     * @hide
+     */
+    public static boolean isInternationalNumber(String phoneNumber, String defaultCountryIso) {
+        // If no phone number is provided, it can't be international.
+        if (TextUtils.isEmpty(phoneNumber)) {
+            return false;
+        }
+
+        // If it starts with # or * its not international.
+        if (phoneNumber.startsWith("#") || phoneNumber.startsWith("*")) {
+            return false;
+        }
+
+        PhoneNumberUtil util = PhoneNumberUtil.getInstance();
+        try {
+            PhoneNumber pn = util.parseAndKeepRawInput(phoneNumber, defaultCountryIso);
+            return pn.getCountryCode() != util.getCountryCodeForRegion(defaultCountryIso);
+        } catch (NumberParseException e) {
+            return false;
+        }
+    }
+
+    /**
      * Format a phone number.
      * <p>
      * If the given number doesn't have the country code, the phone will be
@@ -1598,7 +1627,7 @@ public class PhoneNumberUtils
     //
     // Australia: Short codes are six or eight digits in length, starting with the prefix "19"
     //            followed by an additional four or six digits and two.
-    // Czech Republic: Codes are seven digits in length for MO and five (not billed) or
+    // Czechia: Codes are seven digits in length for MO and five (not billed) or
     //            eight (billed) for MT direction
     //
     // see http://en.wikipedia.org/wiki/Short_code#Regional_differences for reference
@@ -1875,7 +1904,7 @@ public class PhoneNumberUtils
         number = extractNetworkPortionAlt(number);
 
         String emergencyNumbers = "";
-        int slotId = SubscriptionManager.getSlotId(subId);
+        int slotId = SubscriptionManager.getSlotIndex(subId);
 
         // retrieve the list of emergency numbers
         // check read-write ecclist property first
@@ -1933,11 +1962,11 @@ public class PhoneNumberUtils
 
         // No ecclist system property, so use our own list.
         if (defaultCountryIso != null) {
-            ShortNumberUtil util = new ShortNumberUtil();
+            ShortNumberInfo info = ShortNumberInfo.getInstance();
             if (useExactMatch) {
-                return util.isEmergencyNumber(number, defaultCountryIso);
+                return info.isEmergencyNumber(number, defaultCountryIso);
             } else {
-                return util.connectsToEmergencyNumber(number, defaultCountryIso);
+                return info.connectsToEmergencyNumber(number, defaultCountryIso);
             }
         }
 

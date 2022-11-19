@@ -18,6 +18,8 @@ package com.android.layoutlib.bridge.android;
 
 import android.os.IBinder;
 import android.os.IPowerManager;
+import android.os.PowerManager;
+import android.os.PowerSaveState;
 import android.os.RemoteException;
 import android.os.WorkSource;
 
@@ -40,6 +42,10 @@ public class BridgePowerManager implements IPowerManager {
     @Override
     public boolean setPowerSaveMode(boolean mode) throws RemoteException {
         return false;
+    }
+
+    public PowerSaveState getPowerSaveState(int serviceType) {
+        return null;
     }
 
     @Override
@@ -167,6 +173,7 @@ public class BridgePowerManager implements IPowerManager {
     }
 
     @Override
+<<<<<<< HEAD
     public void updateBlockedUids(int uid, boolean isBlocked) throws RemoteException {
         // pass for now.
     }
@@ -179,5 +186,9 @@ public class BridgePowerManager implements IPowerManager {
     @Override
     public void setKeyboardLight(boolean on, int key) {
         // pass for now
+=======
+    public int getLastShutdownReason() {
+        return PowerManager.SHUTDOWN_REASON_UNKNOWN;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 }

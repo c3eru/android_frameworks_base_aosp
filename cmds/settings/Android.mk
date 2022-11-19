@@ -3,6 +3,7 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
+<<<<<<< HEAD
 LOCAL_STATIC_JAVA_LIBRARIES := org.cyanogenmod.platform.internal
 
 LOCAL_SRC_FILES := $(call all-subdir-java-files)
@@ -10,6 +11,8 @@ LOCAL_MODULE := settings
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_JAVA_LIBRARY)
 
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 include $(CLEAR_VARS)
 LOCAL_MODULE := settings
 LOCAL_SRC_FILES := settings

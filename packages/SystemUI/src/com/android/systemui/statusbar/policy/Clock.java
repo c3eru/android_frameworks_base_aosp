@@ -17,10 +17,17 @@
 package com.android.systemui.statusbar.policy;
 
 import android.app.ActivityManager;
+import android.app.StatusBarManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+<<<<<<< HEAD
+=======
+import android.content.res.Configuration;
+import android.content.res.TypedArray;
+import android.graphics.Rect;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -35,6 +42,19 @@ import android.view.Display;
 import android.widget.TextView;
 
 import com.android.systemui.DemoMode;
+<<<<<<< HEAD
+=======
+import com.android.systemui.Dependency;
+import com.android.systemui.FontSizeUtils;
+import com.android.systemui.R;
+import com.android.systemui.SysUiServiceProvider;
+import com.android.systemui.statusbar.CommandQueue;
+import com.android.systemui.statusbar.phone.StatusBarIconController;
+import com.android.systemui.statusbar.policy.ConfigurationController.ConfigurationListener;
+import com.android.systemui.statusbar.policy.DarkIconDispatcher.DarkReceiver;
+import com.android.systemui.tuner.TunerService;
+import com.android.systemui.tuner.TunerService.Tunable;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -46,9 +66,17 @@ import libcore.icu.LocaleData;
 /**
  * Digital clock for the status bar.
  */
+<<<<<<< HEAD
 public class Clock extends TextView implements DemoMode {
+=======
+public class Clock extends TextView implements DemoMode, Tunable, CommandQueue.Callbacks,
+        DarkReceiver, ConfigurationListener {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
     public static final String CLOCK_SECONDS = "clock_seconds";
+
+    private boolean mClockVisibleByPolicy = true;
+    private boolean mClockVisibleByUser = true;
 
     private boolean mAttached;
     private Calendar mCalendar;
@@ -61,7 +89,12 @@ public class Clock extends TextView implements DemoMode {
     public static final int AM_PM_STYLE_SMALL   = 1;
     public static final int AM_PM_STYLE_GONE    = 2;
 
+<<<<<<< HEAD
     private int mAmPmStyle = AM_PM_STYLE_GONE;
+=======
+    private final int mAmPmStyle;
+    private final boolean mShowDark;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     private boolean mShowSeconds;
     private Handler mSecondsHandler;
 
@@ -75,6 +108,19 @@ public class Clock extends TextView implements DemoMode {
 
     public Clock(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+<<<<<<< HEAD
+=======
+        TypedArray a = context.getTheme().obtainStyledAttributes(
+                attrs,
+                R.styleable.Clock,
+                0, 0);
+        try {
+            mAmPmStyle = a.getInt(R.styleable.Clock_amPmStyle, AM_PM_STYLE_GONE);
+            mShowDark = a.getBoolean(R.styleable.Clock_showDark, true);
+        } finally {
+            a.recycle();
+        }
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     @Override
@@ -92,7 +138,17 @@ public class Clock extends TextView implements DemoMode {
             filter.addAction(Intent.ACTION_USER_SWITCHED);
 
             getContext().registerReceiverAsUser(mIntentReceiver, UserHandle.ALL, filter,
+<<<<<<< HEAD
                     null, getHandler());
+=======
+                    null, Dependency.get(Dependency.TIME_TICK_HANDLER));
+            Dependency.get(TunerService.class).addTunable(this, CLOCK_SECONDS,
+                    StatusBarIconController.ICON_BLACKLIST);
+            SysUiServiceProvider.getComponent(getContext(), CommandQueue.class).addCallbacks(this);
+            if (mShowDark) {
+                Dependency.get(DarkIconDispatcher.class).addDarkReceiver(this);
+            }
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         }
 
         // NOTE: It's safe to do these after registering the receiver since the receiver always runs
@@ -112,6 +168,15 @@ public class Clock extends TextView implements DemoMode {
         if (mAttached) {
             getContext().unregisterReceiver(mIntentReceiver);
             mAttached = false;
+<<<<<<< HEAD
+=======
+            Dependency.get(TunerService.class).removeTunable(this);
+            SysUiServiceProvider.getComponent(getContext(), CommandQueue.class)
+                    .removeCallbacks(this);
+            if (mShowDark) {
+                Dependency.get(DarkIconDispatcher.class).removeDarkReceiver(this);
+            }
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         }
     }
 
@@ -121,20 +186,40 @@ public class Clock extends TextView implements DemoMode {
             String action = intent.getAction();
             if (action.equals(Intent.ACTION_TIMEZONE_CHANGED)) {
                 String tz = intent.getStringExtra("time-zone");
-                mCalendar = Calendar.getInstance(TimeZone.getTimeZone(tz));
-                if (mClockFormat != null) {
-                    mClockFormat.setTimeZone(mCalendar.getTimeZone());
-                }
+                getHandler().post(() -> {
+                    mCalendar = Calendar.getInstance(TimeZone.getTimeZone(tz));
+                    if (mClockFormat != null) {
+                        mClockFormat.setTimeZone(mCalendar.getTimeZone());
+                    }
+                });
             } else if (action.equals(Intent.ACTION_CONFIGURATION_CHANGED)) {
                 final Locale newLocale = getResources().getConfiguration().locale;
-                if (! newLocale.equals(mLocale)) {
-                    mLocale = newLocale;
-                    mClockFormatString = ""; // force refresh
-                }
+                getHandler().post(() -> {
+                    if (!newLocale.equals(mLocale)) {
+                        mLocale = newLocale;
+                        mClockFormatString = ""; // force refresh
+                    }
+                });
             }
-            updateClock();
+            getHandler().post(() -> updateClock());
         }
     };
+
+    public void setClockVisibleByUser(boolean visible) {
+        mClockVisibleByUser = visible;
+        updateClockVisibility();
+    }
+
+    public void setClockVisibilityByPolicy(boolean visible) {
+        mClockVisibleByPolicy = visible;
+        updateClockVisibility();
+    }
+
+    private void updateClockVisibility() {
+        int visibility = (mClockVisibleByPolicy && mClockVisibleByUser)
+                ? View.VISIBLE : View.GONE;
+        setVisibility(visibility);
+    }
 
     final void updateClock() {
         if (mDemoMode || mCalendar == null) return;
@@ -143,6 +228,46 @@ public class Clock extends TextView implements DemoMode {
         setContentDescription(mContentDescriptionFormat.format(mCalendar.getTime()));
     }
 
+<<<<<<< HEAD
+=======
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        if (CLOCK_SECONDS.equals(key)) {
+            mShowSeconds = newValue != null && Integer.parseInt(newValue) != 0;
+            updateShowSeconds();
+        } else {
+            setClockVisibleByUser(!StatusBarIconController.getIconBlacklist(newValue)
+                    .contains("clock"));
+            updateClockVisibility();
+        }
+    }
+
+    @Override
+    public void disable(int state1, int state2, boolean animate) {
+        boolean clockVisibleByPolicy = (state1 & StatusBarManager.DISABLE_CLOCK) == 0;
+        if (clockVisibleByPolicy != mClockVisibleByPolicy) {
+            setClockVisibilityByPolicy(clockVisibleByPolicy);
+        }
+    }
+
+    @Override
+    public void onDarkChanged(Rect area, float darkIntensity, int tint) {
+        setTextColor(DarkIconDispatcher.getTint(area, this, tint));
+    }
+
+    @Override
+    public void onDensityOrFontScaleChanged() {
+        FontSizeUtils.updateFontSize(this, R.dimen.status_bar_clock_size);
+        setPaddingRelative(
+                mContext.getResources().getDimensionPixelSize(
+                        R.dimen.status_bar_clock_starting_padding),
+                0,
+                mContext.getResources().getDimensionPixelSize(
+                        R.dimen.status_bar_clock_end_padding),
+                0);
+    }
+
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     private void updateShowSeconds() {
         if (mShowSeconds) {
             // Wait until we have a display to start trying to show seconds.

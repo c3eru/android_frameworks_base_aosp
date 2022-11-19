@@ -16,6 +16,7 @@
 -->
 
 <com.android.systemui.statusbar.NotificationGuts
+<<<<<<< HEAD
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -206,3 +207,13 @@
         />
 
 </com.android.systemui.statusbar.NotificationGuts>
+=======
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:id="@+id/notification_guts"
+    android:visibility="gone"
+    android:clickable="true"
+    android:gravity="top|start"
+    android:theme="@*android:style/Theme.DeviceDefault.Light"/>
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040

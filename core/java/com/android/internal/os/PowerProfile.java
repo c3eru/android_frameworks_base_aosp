@@ -174,6 +174,11 @@ public class PowerProfile {
     public static final String POWER_FLASHLIGHT = "camera.flashlight";
 
     /**
+     * Power consumption when DDR is being used.
+     */
+    public static final String POWER_MEMORY = "memory.bandwidths";
+
+    /**
      * Average power consumption when the camera is on over all standard use cases.
      *
      * TODO: Add more fine-grained camera power metrics.
@@ -310,7 +315,7 @@ public class PowerProfile {
     private static final String POWER_CPU_CLUSTER_SPEED_PREFIX = "cpu.speeds.cluster";
     private static final String POWER_CPU_CLUSTER_ACTIVE_PREFIX = "cpu.active.cluster";
 
-    @SuppressWarnings("deprecated")
+    @SuppressWarnings("deprecation")
     private void initCpuClusters() {
         // Figure out how many CPU clusters we're dealing with
         final Object obj = sPowerMap.get(POWER_CPU_CLUSTER_CORE_COUNT);
@@ -387,6 +392,24 @@ public class PowerProfile {
             }
         }
         return id;
+    }
+
+    /**
+     * Returns the number of memory bandwidth buckets defined in power_profile.xml, or a
+     * default value if the subsystem has no recorded value.
+     * @return the number of memory bandwidth buckets.
+     */
+    public int getNumElements(String key) {
+        if (sPowerMap.containsKey(key)) {
+            Object data = sPowerMap.get(key);
+            if (data instanceof Double[]) {
+                final Double[] values = (Double[]) data;
+                return values.length;
+            } else {
+                return 1;
+            }
+        }
+        return 0;
     }
 
     /**

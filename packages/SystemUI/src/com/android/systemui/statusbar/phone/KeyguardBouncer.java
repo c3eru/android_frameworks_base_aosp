@@ -18,6 +18,7 @@ package com.android.systemui.statusbar.phone;
 
 import android.app.ActivityManager;
 import android.content.Context;
+import android.os.Handler;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.util.Slog;
@@ -37,6 +38,9 @@ import com.android.keyguard.R;
 import com.android.keyguard.ViewMediatorCallback;
 import com.android.systemui.DejankUtils;
 import com.android.systemui.classifier.FalsingManager;
+import com.android.systemui.keyguard.DismissCallbackRegistry;
+
+import org.lineageos.internal.util.LineageLockPatternUtils;
 
 import org.cyanogenmod.internal.util.CmLockPatternUtils;
 
@@ -50,40 +54,60 @@ public class KeyguardBouncer {
 
     final static private String TAG = "KeyguardBouncer";
 
+<<<<<<< HEAD
+=======
+    protected final Context mContext;
+    protected final ViewMediatorCallback mCallback;
+    protected final LockPatternUtils mLockPatternUtils;
+    private final LineageLockPatternUtils mLineageLockPatternUtils;
+    protected final ViewGroup mContainer;
+    private final FalsingManager mFalsingManager;
+    private final DismissCallbackRegistry mDismissCallbackRegistry;
+    private final Handler mHandler;
+
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     public static final int UNLOCK_SEQUENCE_DEFAULT = 0;
     public static final int UNLOCK_SEQUENCE_BOUNCER_FIRST = 1;
     public static final int UNLOCK_SEQUENCE_FORCE_BOUNCER = 2;
 
+<<<<<<< HEAD
     protected Context mContext;
     protected ViewMediatorCallback mCallback;
     protected LockPatternUtils mLockPatternUtils;
     private CmLockPatternUtils mCmLockPatternUtils;
     protected ViewGroup mContainer;
     private StatusBarWindowManager mWindowManager;
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     protected KeyguardHostView mKeyguardView;
     protected ViewGroup mRoot;
     private boolean mShowingSoon;
     private int mBouncerPromptReason;
-    private FalsingManager mFalsingManager;
-    private KeyguardUpdateMonitorCallback mUpdateMonitorCallback =
+    private final KeyguardUpdateMonitorCallback mUpdateMonitorCallback =
             new KeyguardUpdateMonitorCallback() {
                 @Override
                 public void onStrongAuthStateChanged(int userId) {
                     mBouncerPromptReason = mCallback.getBouncerPromptReason();
                 }
             };
+    private final Runnable mRemoveViewRunnable = this::removeView;
 
     public KeyguardBouncer(Context context, ViewMediatorCallback callback,
-            LockPatternUtils lockPatternUtils, StatusBarWindowManager windowManager,
-            ViewGroup container) {
+            LockPatternUtils lockPatternUtils, ViewGroup container,
+            DismissCallbackRegistry dismissCallbackRegistry) {
         mContext = context;
         mCallback = callback;
         mLockPatternUtils = lockPatternUtils;
         mContainer = container;
-        mWindowManager = windowManager;
         KeyguardUpdateMonitor.getInstance(mContext).registerCallback(mUpdateMonitorCallback);
         mFalsingManager = FalsingManager.getInstance(mContext);
+<<<<<<< HEAD
         mCmLockPatternUtils = new CmLockPatternUtils(mContext);
+=======
+        mDismissCallbackRegistry = dismissCallbackRegistry;
+        mHandler = new Handler();
+        mLineageLockPatternUtils = new LineageLockPatternUtils(mContext);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     public void show(boolean resetSecuritySelection) {
@@ -104,12 +128,13 @@ public class KeyguardBouncer {
         }
 
         final int activeUserId = ActivityManager.getCurrentUser();
-        final boolean allowDismissKeyguard =
-                !(UserManager.isSplitSystemUser() && activeUserId == UserHandle.USER_SYSTEM)
-                && activeUserId == keyguardUserId;
+        final boolean isSystemUser =
+                UserManager.isSplitSystemUser() && activeUserId == UserHandle.USER_SYSTEM;
+        final boolean allowDismissKeyguard = !isSystemUser && activeUserId == keyguardUserId;
+
         // If allowed, try to dismiss the Keyguard. If no security auth (password/pin/pattern) is
         // set, this will dismiss the whole Keyguard. Otherwise, show the bouncer.
-        if (allowDismissKeyguard && mKeyguardView.dismiss()) {
+        if (allowDismissKeyguard && mKeyguardView.dismiss(activeUserId)) {
             return;
         }
 
@@ -176,16 +201,23 @@ public class KeyguardBouncer {
     }
 
     public void hide(boolean destroyView) {
+        if (isShowing()) {
+            mDismissCallbackRegistry.notifyDismissCancelled();
+        }
         mFalsingManager.onBouncerHidden();
         cancelShowRunnable();
         if (mKeyguardView != null) {
             mKeyguardView.cancelDismissAction();
             mKeyguardView.cleanUp();
         }
-        if (destroyView) {
-            removeView();
-        } else if (mRoot != null) {
+        if (mRoot != null) {
             mRoot.setVisibility(View.INVISIBLE);
+            if (destroyView) {
+
+                // We have a ViewFlipper that unregisters a broadcast when being detached, which may
+                // be slow because of AM lock contention during unlocking. We can delay it a bit.
+                mHandler.postDelayed(mRemoveViewRunnable, 50);
+            }
         }
     }
 
@@ -229,6 +261,7 @@ public class KeyguardBouncer {
     }
 
     protected void ensureView() {
+        mHandler.removeCallbacks(mRemoveViewRunnable);
         if (mRoot == null) {
             inflateView();
         }
@@ -236,6 +269,7 @@ public class KeyguardBouncer {
 
     protected void inflateView() {
         removeView();
+        mHandler.removeCallbacks(mRemoveViewRunnable);
         mRoot = (ViewGroup) LayoutInflater.from(mContext).inflate(R.layout.keyguard_bouncer, null);
         mKeyguardView = (KeyguardHostView) mRoot.findViewById(R.id.keyguard_host_view);
         mKeyguardView.setLockPatternUtils(mLockPatternUtils);
@@ -267,7 +301,11 @@ public class KeyguardBouncer {
                 return UNLOCK_SEQUENCE_FORCE_BOUNCER;
             } else if ((mode == SecurityMode.Pattern || mode == SecurityMode.Password
                     || mode == SecurityMode.PIN) && (mLockPatternUtils != null
+<<<<<<< HEAD
                     && mCmLockPatternUtils.shouldPassToSecurityView(
+=======
+                    && mLineageLockPatternUtils.shouldPassToSecurityView(
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                             KeyguardUpdateMonitor.getCurrentUser()))) {
                 // "Bouncer first" mode is only available to some security methods
                 return UNLOCK_SEQUENCE_BOUNCER_FIRST;
@@ -287,7 +325,11 @@ public class KeyguardBouncer {
                 return UNLOCK_SEQUENCE_FORCE_BOUNCER;
             } else if ((mode == SecurityMode.Pattern || mode == SecurityMode.Password
                     || mode == SecurityMode.PIN) && (mLockPatternUtils != null
+<<<<<<< HEAD
                     && mCmLockPatternUtils.shouldPassToSecurityView(
+=======
+                    && mLineageLockPatternUtils.shouldPassToSecurityView(
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                             KeyguardUpdateMonitor.getCurrentUser()))) {
                 // "Bouncer first" mode is only available to some security methods
                 return UNLOCK_SEQUENCE_BOUNCER_FIRST;
@@ -314,6 +356,6 @@ public class KeyguardBouncer {
 
     public void notifyKeyguardAuthenticated(boolean strongAuth) {
         ensureView();
-        mKeyguardView.finish(strongAuth);
+        mKeyguardView.finish(strongAuth, KeyguardUpdateMonitor.getCurrentUser());
     }
 }

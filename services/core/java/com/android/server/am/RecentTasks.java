@@ -41,6 +41,7 @@ import android.graphics.Bitmap;
 import android.os.Environment;
 import android.os.RemoteException;
 import android.os.UserHandle;
+import android.util.ArraySet;
 import android.util.Slog;
 import android.util.SparseArray;
 import android.util.SparseBooleanArray;
@@ -104,6 +105,7 @@ class RecentTasks extends ArrayList<TaskRecord> {
      * @param userId the user Id
      */
     void loadUserRecentsLocked(int userId) {
+<<<<<<< HEAD
         if (!mUsersWithRecentsLoaded.get(userId)) {
             // Load the task ids if not loaded.
             loadPersistedTaskIdsForUserLocked(userId);
@@ -112,6 +114,31 @@ class RecentTasks extends ArrayList<TaskRecord> {
             cleanupLocked(userId);
             cleanupProtectedComponentTasksLocked(userId);
             mUsersWithRecentsLoaded.put(userId, true);
+=======
+        if (mUsersWithRecentsLoaded.get(userId)) {
+            return;
+        }
+
+        // Load the task ids if not loaded.
+        loadPersistedTaskIdsForUserLocked(userId);
+
+        // Check if any tasks are added before recents is loaded
+        final SparseBooleanArray preaddedTasks = new SparseBooleanArray();
+        for (final TaskRecord task : this) {
+            if (task.userId == userId && shouldPersistTaskLocked(task)) {
+                preaddedTasks.put(task.taskId, true);
+            }
+        }
+
+        Slog.i(TAG, "Loading recents for user " + userId + " into memory.");
+        addAll(mTaskPersister.restoreTasksForUserLocked(userId, preaddedTasks));
+        cleanupLocked(userId);
+        mUsersWithRecentsLoaded.put(userId, true);
+
+        // If we have tasks added before loading recents, we need to update persistent task IDs.
+        if (preaddedTasks.size() > 0) {
+            syncPersistentTaskIdsLocked();
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         }
     }
 
@@ -130,8 +157,9 @@ class RecentTasks extends ArrayList<TaskRecord> {
     }
 
     void notifyTaskPersisterLocked(TaskRecord task, boolean flush) {
-        if (task != null && task.stack != null && task.stack.isHomeStack()) {
-            // Never persist the home stack.
+        final ActivityStack stack = task != null ? task.getStack() : null;
+        if (stack != null && stack.isHomeOrRecentsStack()) {
+            // Never persist the home or recents stack.
             return;
         }
         syncPersistentTaskIdsLocked();
@@ -148,8 +176,8 @@ class RecentTasks extends ArrayList<TaskRecord> {
             }
         }
         for (int i = size() - 1; i >= 0; i--) {
-            TaskRecord task = get(i);
-            if (task.isPersistable && (task.stack == null || !task.stack.isHomeStack())) {
+            final TaskRecord task = get(i);
+            if (shouldPersistTaskLocked(task)) {
                 // Set of persisted taskIds for task.userId should not be null here
                 // TODO Investigate why it can happen. For now initialize with an empty set
                 if (mPersistedTaskIds.get(task.userId) == null) {
@@ -162,6 +190,10 @@ class RecentTasks extends ArrayList<TaskRecord> {
         }
     }
 
+    private static boolean shouldPersistTaskLocked(TaskRecord task) {
+        final ActivityStack<?> stack = task.getStack();
+        return task.isPersistable && (stack == null || !stack.isHomeOrRecentsStack());
+    }
 
     void onSystemReadyLocked() {
         clear();
@@ -648,10 +680,12 @@ class RecentTasks extends ArrayList<TaskRecord> {
         final Intent intent = task.intent;
         final boolean document = intent != null && intent.isDocument();
         int maxRecents = task.maxRecents - 1;
+        final ActivityStack stack = task.getStack();
         for (int i = 0; i < recentsCount; i++) {
             final TaskRecord tr = get(i);
+            final ActivityStack trStack = tr.getStack();
             if (task != tr) {
-                if (task.stack != null && tr.stack != null && task.stack != tr.stack) {
+                if (stack != null && trStack != null && stack != trStack) {
                     continue;
                 }
                 if (task.userId != tr.userId) {

@@ -126,7 +126,7 @@ public class ImmersiveModeConfirmation {
 
     void systemReady() {
         IVrManager vrManager = IVrManager.Stub.asInterface(
-                ServiceManager.getService(VrManagerService.VR_MANAGER_BINDER_SERVICE));
+                ServiceManager.getService(Context.VR_SERVICE));
         if (vrManager != null) {
             try {
                 vrManager.registerListener(mVrStateCallbacks);
@@ -194,6 +194,7 @@ public class ImmersiveModeConfirmation {
                 0
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
                         | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                 ,
                 PixelFormat.TRANSLUCENT);
         lp.privateFlags |= WindowManager.LayoutParams.PRIVATE_FLAG_SHOW_FOR_ALL_USERS;

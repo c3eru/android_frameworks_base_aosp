@@ -22,17 +22,35 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 
+<<<<<<< HEAD
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+=======
+import com.android.internal.annotations.VisibleForTesting;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 public abstract class CurrentUserTracker {
     private final UserReceiver mUserReceiver;
 
     private Consumer<Integer> mCallback = this::onUserSwitched;
 
     public CurrentUserTracker(Context context) {
+<<<<<<< HEAD
         mUserReceiver = UserReceiver.getInstance(context);
+=======
+        this(UserReceiver.getInstance(context));
+    }
+
+    @VisibleForTesting
+    CurrentUserTracker(UserReceiver receiver) {
+        mUserReceiver = receiver;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     public int getCurrentUserId() {
@@ -49,7 +67,12 @@ public abstract class CurrentUserTracker {
 
     public abstract void onUserSwitched(int newUserId);
 
+<<<<<<< HEAD
     private static class UserReceiver extends BroadcastReceiver {
+=======
+    @VisibleForTesting
+    static class UserReceiver extends BroadcastReceiver {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         private static UserReceiver sInstance;
 
         private Context mAppContext;
@@ -58,7 +81,12 @@ public abstract class CurrentUserTracker {
 
         private List<Consumer<Integer>> mCallbacks = new ArrayList<>();
 
+<<<<<<< HEAD
         private UserReceiver(Context context) {
+=======
+        @VisibleForTesting
+        UserReceiver(Context context) {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
             mAppContext = context.getApplicationContext();
         }
 
@@ -105,8 +133,17 @@ public abstract class CurrentUserTracker {
         private void notifyUserSwitched(int newUserId) {
             if (mCurrentUserId != newUserId) {
                 mCurrentUserId = newUserId;
+<<<<<<< HEAD
                 for (Consumer<Integer> consumer : mCallbacks) {
                     consumer.accept(newUserId);
+=======
+                List<Consumer<Integer>> callbacks = new ArrayList<>(mCallbacks);
+                for (Consumer<Integer> consumer : callbacks) {
+                    // Accepting may modify this list
+                    if (mCallbacks.contains(consumer)) {
+                        consumer.accept(newUserId);
+                    }
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                 }
             }
         }

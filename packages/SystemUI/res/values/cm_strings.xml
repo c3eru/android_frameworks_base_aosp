@@ -5,6 +5,7 @@
  * Copyright (c) 2015, The CyanogenMod Project
  * Copyright (c) 2017, The LineageOS Project
  *
+<<<<<<< HEAD
  * Licensed under the Apache License, Version 2.0 (the "License"); 
  * you may not use this file except in compliance with the License. 
  * You may obtain a copy of the License at 
@@ -15,10 +16,23 @@
  * distributed under the License is distributed on an "AS IS" BASIS, 
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
  * See the License for the specific language governing permissions and 
+=======
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
  * limitations under the License.
  */
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+<<<<<<< HEAD
 
     <!-- Content description of the light brightness slider (not shown on the screen). [CHAR LIMIT=NONE] -->
     <string name="accessibility_notification_brightness">Light brightness</string>
@@ -226,10 +240,16 @@
     <string name="quick_settings_sync_label">Sync</string>
     <string name="quick_settings_volume_panel_label">Volume panel</string>
 
+=======
+    <!-- Content description of the data connection type HSPA+ for accessibility (not shown on the screen). [CHAR LIMIT=NONE] -->
+    <string name="accessibility_data_connection_hspap">HSPA+</string>
+
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     <!-- Content description for Accessibility on unlocked tasks in recents -->
     <string name="accessibility_lock_task">Prevent <xliff:g id="task">%1$s</xliff:g> from being dismissed</string>
     <!-- Content description for Accessibility on locked tasks in recents -->
     <string name="accessibility_unlock_task">Allow <xliff:g id="task">%1$s</xliff:g> to be dismissed</string>
+<<<<<<< HEAD
 
     <!-- LiveDisplay strings -->
     <string name="live_display_title" translatable="false">LiveDisplay</string>
@@ -255,4 +275,6 @@
     <string name="accessibility_quick_settings_live_display_changed_day">LiveDisplay changed to day mode.</string>
     <string name="accessibility_quick_settings_live_display_changed_night">LiveDisplay changed to night mode.</string>
     <string name="accessibility_quick_settings_live_display_changed_outdoor">LiveDisplay changed to outdoor mode.</string>
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 </resources>

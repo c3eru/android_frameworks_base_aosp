@@ -28,18 +28,33 @@ import android.provider.Settings;
 import android.widget.Switch;
 
 import com.android.internal.logging.MetricsLogger;
+<<<<<<< HEAD
 import com.android.internal.logging.MetricsProto.MetricsEvent;
 import com.android.systemui.R;
 import com.android.systemui.qs.QSTile;
 
 /** Quick settings tile: Enable/Disable NFC **/
 public class NfcTile extends QSTile<QSTile.BooleanState> {
+=======
+import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
+import com.android.systemui.R;
+import com.android.systemui.qs.QSHost;
+import com.android.systemui.plugins.qs.QSTile.BooleanState;
+import com.android.systemui.qs.tileimpl.QSTileImpl;
+
+/** Quick settings tile: Enable/Disable NFC **/
+public class NfcTile extends QSTileImpl<BooleanState> {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
     private NfcAdapter mAdapter;
 
     private boolean mListening;
 
+<<<<<<< HEAD
     public NfcTile(Host host) {
+=======
+    public NfcTile(QSHost host) {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         super(host);
     }
 
@@ -83,7 +98,10 @@ public class NfcTile extends QSTile<QSTile.BooleanState> {
     @Override
     protected void handleClick() {
         if (mAdapter == null) return;
+<<<<<<< HEAD
         MetricsLogger.action(mContext, getMetricsCategory(), !mState.value);
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         if (!mAdapter.isEnabled()) {
             mAdapter.enable();
         } else {
@@ -108,8 +126,12 @@ public class NfcTile extends QSTile<QSTile.BooleanState> {
         state.value = mAdapter == null ? false : mAdapter.isEnabled();
         state.label = mContext.getString(R.string.quick_settings_nfc_label);
         state.icon = new DrawableIcon(state.value ? mEnable : mDisable);
+<<<<<<< HEAD
         state.minimalAccessibilityClassName = state.expandedAccessibilityClassName
                 = Switch.class.getName();
+=======
+        state.expandedAccessibilityClassName = Switch.class.getName();
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         state.contentDescription = state.label;
     }
 

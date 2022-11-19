@@ -16,8 +16,12 @@
 
 package com.android.server.notification;
 
+<<<<<<< HEAD
 import static android.service.notification.NotificationListenerService.Ranking.IMPORTANCE_HIGH;
 import static android.service.notification.NotificationListenerService.Ranking.importanceToLevel;
+=======
+import static android.app.NotificationManager.IMPORTANCE_HIGH;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
 import android.app.Notification;
 import android.content.ContentValues;

@@ -16,34 +16,13 @@
 
 package com.android.server.wm;
 
-import static android.view.WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD;
-import static android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER;
-import static android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;
-import static android.view.WindowManager.LayoutParams.PRIVATE_FLAG_KEYGUARD;
-import static android.view.WindowManager.LayoutParams.PRIVATE_FLAG_SYSTEM_ERROR;
-import static android.view.WindowManager.LayoutParams.TYPE_APPLICATION_STARTING;
-import static android.view.WindowManager.LayoutParams.TYPE_DOCK_DIVIDER;
-import static android.view.WindowManagerPolicy.KEYGUARD_GOING_AWAY_FLAG_TO_SHADE;
-import static android.view.WindowManagerPolicy.KEYGUARD_GOING_AWAY_FLAG_NO_WINDOW_ANIMATIONS;
-import static android.view.WindowManagerPolicy.KEYGUARD_GOING_AWAY_FLAG_WITH_WALLPAPER;
-import static com.android.server.wm.WindowManagerDebugConfig.DEBUG_ANIM;
-import static com.android.server.wm.WindowManagerDebugConfig.DEBUG_FOCUS_LIGHT;
-import static com.android.server.wm.WindowManagerDebugConfig.DEBUG_KEYGUARD;
-import static com.android.server.wm.WindowManagerDebugConfig.DEBUG_LAYOUT_REPEATS;
-import static com.android.server.wm.WindowManagerDebugConfig.DEBUG_ORIENTATION;
-import static com.android.server.wm.WindowManagerDebugConfig.DEBUG_VISIBILITY;
-import static com.android.server.wm.WindowManagerDebugConfig.DEBUG_WALLPAPER;
+import static android.view.Display.DEFAULT_DISPLAY;
 import static com.android.server.wm.WindowManagerDebugConfig.DEBUG_WINDOW_TRACE;
 import static com.android.server.wm.WindowManagerDebugConfig.SHOW_TRANSACTIONS;
 import static com.android.server.wm.WindowManagerDebugConfig.TAG_WITH_CLASS_NAME;
 import static com.android.server.wm.WindowManagerDebugConfig.TAG_WM;
-import static com.android.server.wm.WindowStateAnimator.READY_TO_SHOW;
-import static com.android.server.wm.WindowStateAnimator.STACK_CLIP_BEFORE_ANIM;
-import static com.android.server.wm.WindowSurfacePlacer.SET_FORCE_HIDING_CHANGED;
 import static com.android.server.wm.WindowSurfacePlacer.SET_ORIENTATION_CHANGE_COMPLETE;
 import static com.android.server.wm.WindowSurfacePlacer.SET_UPDATE_ROTATION;
-import static com.android.server.wm.WindowSurfacePlacer.SET_WALLPAPER_ACTION_PENDING;
-import static com.android.server.wm.WindowSurfacePlacer.SET_WALLPAPER_MAY_CHANGE;
 
 import android.content.Context;
 import android.os.Trace;
@@ -51,15 +30,14 @@ import android.util.Slog;
 import android.util.SparseArray;
 import android.util.TimeUtils;
 import android.view.Choreographer;
-import android.view.Display;
 import android.view.SurfaceControl;
 import android.view.WindowManager;
 import android.view.WindowManagerPolicy;
-import android.view.animation.AlphaAnimation;
-import android.view.animation.Animation;
+
+import com.android.internal.view.SurfaceFlingerVsyncChoreographer;
+import com.android.server.AnimationThread;
 
 import java.io.PrintWriter;
-import java.util.ArrayList;
 
 /**
  * Singleton class that carries out the animations and Surface operations in a separate task
@@ -68,9 +46,6 @@ import java.util.ArrayList;
 public class WindowAnimator {
     private static final String TAG = TAG_WITH_CLASS_NAME ? "WindowAnimator" : TAG_WM;
 
-    /** How long to give statusbar to clear the private keyguard flag when animating out */
-    private static final long KEYGUARD_ANIM_TIMEOUT_MS = 1000;
-
     final WindowManagerService mService;
     final Context mContext;
     final WindowManagerPolicy mPolicy;
@@ -78,6 +53,7 @@ public class WindowAnimator {
 
     /** Is any window animating? */
     private boolean mAnimating;
+    private boolean mLastAnimating;
 
     /** Is any app window animating? */
     boolean mAppWindowAnimating;
@@ -89,7 +65,7 @@ public class WindowAnimator {
 
     /** Skip repeated AppWindowTokens initialization. Note that AppWindowsToken's version of this
      * is a long initialized to Long.MIN_VALUE so that it doesn't match this value on startup. */
-    private int mAnimTransactionSequence;
+    int mAnimTransactionSequence;
 
     /** Window currently running an animation that has requested it be detached
      * from the wallpaper.  This means we need to ensure the wallpaper is
@@ -104,6 +80,7 @@ public class WindowAnimator {
 
     boolean mInitialized = false;
 
+<<<<<<< HEAD
     boolean mKeyguardGoingAway;
     int mKeyguardGoingAwayFlags;
 
@@ -117,44 +94,41 @@ public class WindowAnimator {
     int mForceHiding = KEYGUARD_NOT_SHOWN;
     int offsetLayer = 0;
 
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     // When set to true the animator will go over all windows after an animation frame is posted and
     // check if some got replaced and can be removed.
     private boolean mRemoveReplacedWindows = false;
 
-    private final AppTokenList mTmpExitingAppTokens = new AppTokenList();
+    private Choreographer mChoreographer;
 
-    /** The window that was previously hiding the Keyguard. */
-    private WindowState mLastShowWinWhenLocked;
-
-    private String forceHidingToString() {
-        switch (mForceHiding) {
-            case KEYGUARD_NOT_SHOWN:    return "KEYGUARD_NOT_SHOWN";
-            case KEYGUARD_SHOWN:        return "KEYGUARD_SHOWN";
-            case KEYGUARD_ANIMATING_OUT:return "KEYGUARD_ANIMATING_OUT";
-            default: return "KEYGUARD STATE UNKNOWN " + mForceHiding;
-        }
-    }
+    /**
+     * Indicates whether we have an animation frame callback scheduled, which will happen at
+     * vsync-app and then schedule the animation tick at the right time (vsync-sf).
+     */
+    private boolean mAnimationFrameCallbackScheduled;
 
     WindowAnimator(final WindowManagerService service) {
         mService = service;
         mContext = service.mContext;
         mPolicy = service.mPolicy;
         mWindowPlacerLocked = service.mWindowPlacerLocked;
+        AnimationThread.getHandler().runWithScissors(
+                () -> mChoreographer = Choreographer.getSfInstance(), 0 /* timeout */);
 
-        mAnimationFrameCallback = new Choreographer.FrameCallback() {
-            public void doFrame(long frameTimeNs) {
-                synchronized (mService.mWindowMap) {
-                    mService.mAnimationScheduled = false;
-                    animateLocked(frameTimeNs);
-                }
+        mAnimationFrameCallback = frameTimeNs -> {
+            synchronized (mService.mWindowMap) {
+                mAnimationFrameCallbackScheduled = false;
             }
+            animate(frameTimeNs);
         };
     }
 
     void addDisplayLocked(final int displayId) {
-        // Create the DisplayContentsAnimator object by retrieving it.
+        // Create the DisplayContentsAnimator object by retrieving it if the associated
+        // {@link DisplayContent} exists.
         getDisplayContentsAnimatorLocked(displayId);
-        if (displayId == Display.DEFAULT_DISPLAY) {
+        if (displayId == DEFAULT_DISPLAY) {
             mInitialized = true;
         }
     }
@@ -171,65 +145,12 @@ public class WindowAnimator {
         mDisplayContentsAnimators.delete(displayId);
     }
 
-    private void updateAppWindowsLocked(int displayId) {
-        ArrayList<TaskStack> stacks = mService.getDisplayContentLocked(displayId).getStacks();
-        for (int stackNdx = stacks.size() - 1; stackNdx >= 0; --stackNdx) {
-            final TaskStack stack = stacks.get(stackNdx);
-            final ArrayList<Task> tasks = stack.getTasks();
-            for (int taskNdx = tasks.size() - 1; taskNdx >= 0; --taskNdx) {
-                final AppTokenList tokens = tasks.get(taskNdx).mAppTokens;
-                for (int tokenNdx = tokens.size() - 1; tokenNdx >= 0; --tokenNdx) {
-                    final AppWindowAnimator appAnimator = tokens.get(tokenNdx).mAppAnimator;
-                    appAnimator.wasAnimating = appAnimator.animating;
-                    if (appAnimator.stepAnimationLocked(mCurrentTime, displayId)) {
-                        appAnimator.animating = true;
-                        setAnimating(true);
-                        mAppWindowAnimating = true;
-                    } else if (appAnimator.wasAnimating) {
-                        // stopped animating, do one more pass through the layout
-                        setAppLayoutChanges(appAnimator,
-                                WindowManagerPolicy.FINISH_LAYOUT_REDO_WALLPAPER,
-                                "appToken " + appAnimator.mAppToken + " done", displayId);
-                        if (DEBUG_ANIM) Slog.v(TAG,
-                                "updateWindowsApps...: done animating " + appAnimator.mAppToken);
-                    }
-                }
-            }
-
-            mTmpExitingAppTokens.clear();
-            mTmpExitingAppTokens.addAll(stack.mExitingAppTokens);
-
-            final int exitingCount = mTmpExitingAppTokens.size();
-            for (int i = 0; i < exitingCount; i++) {
-                final AppWindowAnimator appAnimator = mTmpExitingAppTokens.get(i).mAppAnimator;
-                // stepAnimation can trigger finishExit->removeWindowInnerLocked
-                // ->performSurfacePlacement
-                // performSurfacePlacement will directly manipulate the mExitingAppTokens list
-                // so we need to iterate over a copy and check for modifications.
-                if (!stack.mExitingAppTokens.contains(appAnimator)) {
-                    continue;
-                }
-                appAnimator.wasAnimating = appAnimator.animating;
-                if (appAnimator.stepAnimationLocked(mCurrentTime, displayId)) {
-                    setAnimating(true);
-                    mAppWindowAnimating = true;
-                } else if (appAnimator.wasAnimating) {
-                    // stopped animating, do one more pass through the layout
-                    setAppLayoutChanges(appAnimator,
-                            WindowManagerPolicy.FINISH_LAYOUT_REDO_WALLPAPER,
-                            "exiting appToken " + appAnimator.mAppToken + " done", displayId);
-                    if (DEBUG_ANIM) Slog.v(TAG,
-                            "updateWindowsApps...: done animating exiting "
-                                    + appAnimator.mAppToken);
-                }
-            }
-        }
-    }
-
     /**
-     * @return The window that is currently hiding the Keyguard, or if it was hiding the Keyguard,
-     *         and it's still animating.
+     * DO NOT HOLD THE WINDOW MANAGER LOCK WHILE CALLING THIS METHOD. Reason: the method closes
+     * an animation transaction, that might be blocking until the next sf-vsync, so we want to make
+     * sure other threads can make progress if this happens.
      */
+<<<<<<< HEAD
     private WindowState getWinShowWhenLockedOrAnimating() {
         final WindowState winShowWhenLocked = (WindowState) mPolicy.getWinShowWhenLockedLw();
         if (winShowWhenLocked != null) {
@@ -719,34 +640,88 @@ public class WindowAnimator {
                 TAG, ">>> OPEN TRANSACTION animateLocked");
         SurfaceControl.openTransaction();
         SurfaceControl.setAnimationTransaction();
+=======
+    private void animate(long frameTimeNs) {
+        boolean transactionOpen = false;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         try {
-            final int numDisplays = mDisplayContentsAnimators.size();
-            for (int i = 0; i < numDisplays; i++) {
-                final int displayId = mDisplayContentsAnimators.keyAt(i);
-                updateAppWindowsLocked(displayId);
-                DisplayContentsAnimator displayAnimator = mDisplayContentsAnimators.valueAt(i);
+            synchronized (mService.mWindowMap) {
+                if (!mInitialized) {
+                    return;
+                }
 
-                final ScreenRotationAnimation screenRotationAnimation =
-                        displayAnimator.mScreenRotationAnimation;
-                if (screenRotationAnimation != null && screenRotationAnimation.isAnimating()) {
-                    if (screenRotationAnimation.stepAnimationLocked(mCurrentTime)) {
-                        setAnimating(true);
-                    } else {
-                        mBulkUpdateParams |= SET_UPDATE_ROTATION;
-                        screenRotationAnimation.kill();
-                        displayAnimator.mScreenRotationAnimation = null;
+                mCurrentTime = frameTimeNs / TimeUtils.NANOS_PER_MS;
+                mBulkUpdateParams = SET_ORIENTATION_CHANGE_COMPLETE;
+                mAnimating = false;
+                mAppWindowAnimating = false;
+                if (DEBUG_WINDOW_TRACE) {
+                    Slog.i(TAG, "!!! animate: entry time=" + mCurrentTime);
+                }
 
-                        //TODO (multidisplay): Accessibility supported only for the default display.
-                        if (mService.mAccessibilityController != null
-                                && displayId == Display.DEFAULT_DISPLAY) {
-                            // We just finished rotation animation which means we did not
-                            // anounce the rotation and waited for it to end, announce now.
-                            mService.mAccessibilityController.onRotationChangedLocked(
-                                    mService.getDefaultDisplayContentLocked(), mService.mRotation);
+                if (SHOW_TRANSACTIONS) Slog.i(TAG, ">>> OPEN TRANSACTION animate");
+                mService.openSurfaceTransaction();
+                transactionOpen = true;
+                SurfaceControl.setAnimationTransaction();
+
+                final AccessibilityController accessibilityController =
+                        mService.mAccessibilityController;
+                final int numDisplays = mDisplayContentsAnimators.size();
+                for (int i = 0; i < numDisplays; i++) {
+                    final int displayId = mDisplayContentsAnimators.keyAt(i);
+                    final DisplayContent dc = mService.mRoot.getDisplayContentOrCreate(displayId);
+                    dc.stepAppWindowsAnimation(mCurrentTime);
+                    DisplayContentsAnimator displayAnimator = mDisplayContentsAnimators.valueAt(i);
+
+                    final ScreenRotationAnimation screenRotationAnimation =
+                            displayAnimator.mScreenRotationAnimation;
+                    if (screenRotationAnimation != null && screenRotationAnimation.isAnimating()) {
+                        if (screenRotationAnimation.stepAnimationLocked(mCurrentTime)) {
+                            setAnimating(true);
+                        } else {
+                            mBulkUpdateParams |= SET_UPDATE_ROTATION;
+                            screenRotationAnimation.kill();
+                            displayAnimator.mScreenRotationAnimation = null;
+
+                            //TODO (multidisplay): Accessibility supported only for the default
+                            // display.
+                            if (accessibilityController != null && dc.isDefaultDisplay) {
+                                // We just finished rotation animation which means we did not
+                                // announce the rotation and waited for it to end, announce now.
+                                accessibilityController.onRotationChangedLocked(
+                                        mService.getDefaultDisplayContentLocked());
+                            }
                         }
+                    }
+
+                    // Update animations of all applications, including those
+                    // associated with exiting/removed apps
+                    ++mAnimTransactionSequence;
+                    dc.updateWindowsForAnimator(this);
+                    dc.updateWallpaperForAnimator(this);
+                    dc.prepareWindowSurfaces();
+                }
+
+                for (int i = 0; i < numDisplays; i++) {
+                    final int displayId = mDisplayContentsAnimators.keyAt(i);
+                    final DisplayContent dc = mService.mRoot.getDisplayContentOrCreate(displayId);
+
+                    dc.checkAppWindowsReadyToShow();
+
+                    final ScreenRotationAnimation screenRotationAnimation =
+                            mDisplayContentsAnimators.valueAt(i).mScreenRotationAnimation;
+                    if (screenRotationAnimation != null) {
+                        screenRotationAnimation.updateSurfacesInTransaction();
+                    }
+
+                    orAnimating(dc.animateDimLayers());
+                    orAnimating(dc.getDockedDividerController().animate(mCurrentTime));
+                    //TODO (multidisplay): Magnification is supported only for the default display.
+                    if (accessibilityController != null && dc.isDefaultDisplay) {
+                        accessibilityController.drawMagnifiedRegionBorderIfNeededLocked();
                     }
                 }
 
+<<<<<<< HEAD
                 // Update animations of all applications, including those
                 // associated with exiting/removed apps
                 updateWindowsLocked(displayId);
@@ -770,18 +745,17 @@ public class WindowAnimator {
                         mDisplayContentsAnimators.valueAt(i).mScreenRotationAnimation;
                 if (screenRotationAnimation != null) {
                     screenRotationAnimation.updateSurfacesInTransaction();
+=======
+                if (mService.mDragState != null) {
+                    mAnimating |= mService.mDragState.stepAnimationLocked(mCurrentTime);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                 }
 
-                orAnimating(mService.getDisplayContentLocked(displayId).animateDimLayers());
-                orAnimating(mService.getDisplayContentLocked(displayId).getDockedDividerController()
-                        .animate(mCurrentTime));
-                //TODO (multidisplay): Magnification is supported only for the default display.
-                if (mService.mAccessibilityController != null
-                        && displayId == Display.DEFAULT_DISPLAY) {
-                    mService.mAccessibilityController.drawMagnifiedRegionBorderIfNeededLocked();
+                if (mAnimating) {
+                    mService.scheduleAnimationLocked();
                 }
-            }
 
+<<<<<<< HEAD
             if (mService.mDragState != null) {
                 mAnimating |= mService.mDragState.stepAnimationLocked(mCurrentTime);
             }
@@ -792,82 +766,67 @@ public class WindowAnimator {
 
             if (mService.mWatermark != null) {
                 mService.mWatermark.drawIfNeeded();
+=======
+                if (mService.mWatermark != null) {
+                    mService.mWatermark.drawIfNeeded();
+                }
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
             }
         } catch (RuntimeException e) {
             Slog.wtf(TAG, "Unhandled exception in Window Manager", e);
         } finally {
-            SurfaceControl.closeTransaction();
-            if (SHOW_TRANSACTIONS) Slog.i(
-                    TAG, "<<< CLOSE TRANSACTION animateLocked");
-        }
+            if (transactionOpen) {
 
-        boolean hasPendingLayoutChanges = false;
-        final int numDisplays = mService.mDisplayContents.size();
-        for (int displayNdx = 0; displayNdx < numDisplays; ++displayNdx) {
-            final DisplayContent displayContent = mService.mDisplayContents.valueAt(displayNdx);
-            final int pendingChanges = getPendingLayoutChanges(displayContent.getDisplayId());
-            if ((pendingChanges & WindowManagerPolicy.FINISH_LAYOUT_REDO_WALLPAPER) != 0) {
-                mBulkUpdateParams |= SET_WALLPAPER_ACTION_PENDING;
-            }
-            if (pendingChanges != 0) {
-                hasPendingLayoutChanges = true;
+                // Do not hold window manager lock while closing the transaction, as this might be
+                // blocking until the next frame, which can lead to total lock starvation.
+                mService.closeSurfaceTransaction(false /* withLockHeld */);
+                if (SHOW_TRANSACTIONS) Slog.i(TAG, "<<< CLOSE TRANSACTION animate");
             }
         }
 
-        boolean doRequest = false;
-        if (mBulkUpdateParams != 0) {
-            doRequest = mWindowPlacerLocked.copyAnimToLayoutParamsLocked();
-        }
+        synchronized (mService.mWindowMap) {
+            boolean hasPendingLayoutChanges = mService.mRoot.hasPendingLayoutChanges(this);
+            boolean doRequest = false;
+            if (mBulkUpdateParams != 0) {
+                doRequest = mService.mRoot.copyAnimToLayoutParams();
+            }
 
-        if (hasPendingLayoutChanges || doRequest) {
-            mWindowPlacerLocked.requestTraversal();
-        }
+            if (hasPendingLayoutChanges || doRequest) {
+                mWindowPlacerLocked.requestTraversal();
+            }
 
-        if (mAnimating && !wasAnimating && Trace.isTagEnabled(Trace.TRACE_TAG_WINDOW_MANAGER)) {
-            Trace.asyncTraceBegin(Trace.TRACE_TAG_WINDOW_MANAGER, "animating", 0);
-        }
+            if (mAnimating && !mLastAnimating) {
 
-        if (!mAnimating && wasAnimating) {
-            mWindowPlacerLocked.requestTraversal();
-            if (Trace.isTagEnabled(Trace.TRACE_TAG_WINDOW_MANAGER)) {
+                // Usually app transitions but quite a load onto the system already (with all the
+                // things happening in app), so pause task snapshot persisting to not increase the
+                // load.
+                mService.mTaskSnapshotController.setPersisterPaused(true);
+                Trace.asyncTraceBegin(Trace.TRACE_TAG_WINDOW_MANAGER, "animating", 0);
+            }
+            if (!mAnimating && mLastAnimating) {
+                mWindowPlacerLocked.requestTraversal();
+                mService.mTaskSnapshotController.setPersisterPaused(false);
                 Trace.asyncTraceEnd(Trace.TRACE_TAG_WINDOW_MANAGER, "animating", 0);
             }
-        }
 
-        if (mRemoveReplacedWindows) {
-            removeReplacedWindowsLocked();
-        }
+            mLastAnimating = mAnimating;
 
-        mService.stopUsingSavedSurfaceLocked();
-        mService.destroyPreservedSurfaceLocked();
-        mService.mWindowPlacerLocked.destroyPendingSurfaces();
-
-        if (DEBUG_WINDOW_TRACE) {
-            Slog.i(TAG, "!!! animate: exit mAnimating=" + mAnimating
-                    + " mBulkUpdateParams=" + Integer.toHexString(mBulkUpdateParams)
-                    + " mPendingLayoutChanges(DEFAULT_DISPLAY)="
-                    + Integer.toHexString(getPendingLayoutChanges(Display.DEFAULT_DISPLAY)));
-        }
-    }
-
-    private void removeReplacedWindowsLocked() {
-        if (SHOW_TRANSACTIONS) Slog.i(
-                TAG, ">>> OPEN TRANSACTION removeReplacedWindows");
-        SurfaceControl.openTransaction();
-        try {
-            for (int i = mService.mDisplayContents.size() - 1; i >= 0; i--) {
-                DisplayContent display = mService.mDisplayContents.valueAt(i);
-                final WindowList windows = mService.getWindowListLocked(display.getDisplayId());
-                for (int j = windows.size() - 1; j >= 0; j--) {
-                    windows.get(j).maybeRemoveReplacedWindow();
-                }
+            if (mRemoveReplacedWindows) {
+                mService.mRoot.removeReplacedWindows();
+                mRemoveReplacedWindows = false;
             }
-        } finally {
-            SurfaceControl.closeTransaction();
-            if (SHOW_TRANSACTIONS) Slog.i(
-                    TAG, "<<< CLOSE TRANSACTION removeReplacedWindows");
+
+            mService.stopUsingSavedSurfaceLocked();
+            mService.destroyPreservedSurfaceLocked();
+            mService.mWindowPlacerLocked.destroyPendingSurfaces();
+
+            if (DEBUG_WINDOW_TRACE) {
+                Slog.i(TAG, "!!! animate: exit mAnimating=" + mAnimating
+                        + " mBulkUpdateParams=" + Integer.toHexString(mBulkUpdateParams)
+                        + " mPendingLayoutChanges(DEFAULT_DISPLAY)="
+                        + Integer.toHexString(getPendingLayoutChanges(DEFAULT_DISPLAY)));
+            }
         }
-        mRemoveReplacedWindows = false;
     }
 
     private static String bulkUpdateParamsToString(int bulkUpdateParams) {
@@ -898,15 +857,10 @@ public class WindowAnimator {
             pw.print(prefix); pw.print("DisplayContentsAnimator #");
                     pw.print(mDisplayContentsAnimators.keyAt(i));
                     pw.println(":");
-            DisplayContentsAnimator displayAnimator = mDisplayContentsAnimators.valueAt(i);
-            final WindowList windows =
-                    mService.getWindowListLocked(mDisplayContentsAnimators.keyAt(i));
-            final int N = windows.size();
-            for (int j = 0; j < N; j++) {
-                WindowStateAnimator wanim = windows.get(j).mWinAnimator;
-                pw.print(subPrefix); pw.print("Window #"); pw.print(j);
-                        pw.print(": "); pw.println(wanim);
-            }
+            final DisplayContentsAnimator displayAnimator = mDisplayContentsAnimators.valueAt(i);
+            final DisplayContent dc =
+                    mService.mRoot.getDisplayContentOrCreate(mDisplayContentsAnimators.keyAt(i));
+            dc.dumpWindowAnimators(pw, subPrefix);
             if (displayAnimator.mScreenRotationAnimation != null) {
                 pw.print(subPrefix); pw.println("mScreenRotationAnimation:");
                 displayAnimator.mScreenRotationAnimation.printTo(subSubPrefix, pw);
@@ -921,7 +875,6 @@ public class WindowAnimator {
         if (dumpAll) {
             pw.print(prefix); pw.print("mAnimTransactionSequence=");
                     pw.print(mAnimTransactionSequence);
-                    pw.print(" mForceHiding="); pw.println(forceHidingToString());
             pw.print(prefix); pw.print("mCurrentTime=");
                     pw.println(TimeUtils.formatUptime(mCurrentTime));
         }
@@ -940,7 +893,7 @@ public class WindowAnimator {
         if (displayId < 0) {
             return 0;
         }
-        final DisplayContent displayContent = mService.getDisplayContentLocked(displayId);
+        final DisplayContent displayContent = mService.mRoot.getDisplayContentOrCreate(displayId);
         return (displayContent != null) ? displayContent.pendingLayoutChanges : 0;
     }
 
@@ -948,30 +901,23 @@ public class WindowAnimator {
         if (displayId < 0) {
             return;
         }
-        final DisplayContent displayContent = mService.getDisplayContentLocked(displayId);
+        final DisplayContent displayContent = mService.mRoot.getDisplayContentOrCreate(displayId);
         if (displayContent != null) {
             displayContent.pendingLayoutChanges |= changes;
         }
     }
 
-    void setAppLayoutChanges(final AppWindowAnimator appAnimator, final int changes, String reason,
-            final int displayId) {
-        WindowList windows = appAnimator.mAppToken.allAppWindows;
-        for (int i = windows.size() - 1; i >= 0; i--) {
-            if (displayId == windows.get(i).getDisplayId()) {
-                setPendingLayoutChanges(displayId, changes);
-                if (DEBUG_LAYOUT_REPEATS) {
-                    mWindowPlacerLocked.debugLayoutRepeats(reason,
-                            getPendingLayoutChanges(displayId));
-                }
-                break;
-            }
-        }
-    }
-
     private DisplayContentsAnimator getDisplayContentsAnimatorLocked(int displayId) {
+        if (displayId < 0) {
+            return null;
+        }
+
         DisplayContentsAnimator displayAnimator = mDisplayContentsAnimators.get(displayId);
-        if (displayAnimator == null) {
+
+        // It is possible that this underlying {@link DisplayContent} has been removed. In this
+        // case, we do not want to create an animator associated with it as {link #animate} will
+        // fail.
+        if (displayAnimator == null && mService.mRoot.getDisplayContent(displayId) != null) {
             displayAnimator = new DisplayContentsAnimator();
             mDisplayContentsAnimators.put(displayId, displayAnimator);
         }
@@ -979,8 +925,10 @@ public class WindowAnimator {
     }
 
     void setScreenRotationAnimationLocked(int displayId, ScreenRotationAnimation animation) {
-        if (displayId >= 0) {
-            getDisplayContentsAnimatorLocked(displayId).mScreenRotationAnimation = animation;
+        final DisplayContentsAnimator animator = getDisplayContentsAnimatorLocked(displayId);
+
+        if (animator != null) {
+            animator.mScreenRotationAnimation = animation;
         }
     }
 
@@ -988,11 +936,20 @@ public class WindowAnimator {
         if (displayId < 0) {
             return null;
         }
-        return getDisplayContentsAnimatorLocked(displayId).mScreenRotationAnimation;
+
+        DisplayContentsAnimator animator = getDisplayContentsAnimatorLocked(displayId);
+        return animator != null? animator.mScreenRotationAnimation : null;
     }
 
     void requestRemovalOfReplacedWindows(WindowState win) {
         mRemoveReplacedWindows = true;
+    }
+
+    void scheduleAnimation() {
+        if (!mAnimationFrameCallbackScheduled) {
+            mAnimationFrameCallbackScheduled = true;
+            mChoreographer.postFrameCallback(mAnimationFrameCallback);
+        }
     }
 
     private class DisplayContentsAnimator {
@@ -1001,6 +958,14 @@ public class WindowAnimator {
 
     boolean isAnimating() {
         return mAnimating;
+    }
+
+    boolean isAnimationScheduled() {
+        return mAnimationFrameCallbackScheduled;
+    }
+
+    Choreographer getChoreographer() {
+        return mChoreographer;
     }
 
     void setAnimating(boolean animating) {

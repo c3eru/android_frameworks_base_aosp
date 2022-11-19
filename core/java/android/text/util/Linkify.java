@@ -20,17 +20,25 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.telephony.PhoneNumberUtils;
-import android.text.method.LinkMovementMethod;
-import android.text.method.MovementMethod;
-import android.text.style.URLSpan;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
+<<<<<<< HEAD
 import android.util.Log;
+=======
+import android.text.method.LinkMovementMethod;
+import android.text.method.MovementMethod;
+import android.text.style.URLSpan;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 import android.util.Patterns;
 import android.webkit.WebView;
 import android.widget.TextView;
 
+import com.android.i18n.phonenumbers.PhoneNumberMatch;
+import com.android.i18n.phonenumbers.PhoneNumberUtil;
+import com.android.i18n.phonenumbers.PhoneNumberUtil.Leniency;
+
+import libcore.util.EmptyArray;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Retention;
@@ -42,12 +50,6 @@ import java.util.Comparator;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.android.i18n.phonenumbers.PhoneNumberMatch;
-import com.android.i18n.phonenumbers.PhoneNumberUtil;
-import com.android.i18n.phonenumbers.PhoneNumberUtil.Leniency;
-
-import libcore.util.EmptyArray;
 
 /**
  *  Linkify take a piece of text and a regular expression and turns all of the

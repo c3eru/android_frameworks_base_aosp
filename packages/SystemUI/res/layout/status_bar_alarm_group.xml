@@ -20,6 +20,7 @@
     android:id="@+id/date_time_alarm_group"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+<<<<<<< HEAD
     android:layout_marginTop="16dp"
     android:layout_marginStart="16dp"
     android:gravity="start"
@@ -52,23 +53,44 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:visibility="gone" />
     </LinearLayout>
+=======
+    android:padding="4dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:background="?android:attr/selectableItemBackground">
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
     <com.android.systemui.statusbar.policy.DateView
         android:id="@+id/date"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:singleLine="true"
-        android:layout_marginTop="-4dp"
-        android:textAppearance="@style/TextAppearance.StatusBar.Expanded.Clock"
+        android:textAppearance="@style/TextAppearance.StatusBar.Expanded.Date"
         android:textSize="@dimen/qs_time_collapsed_size"
+<<<<<<< HEAD
         android:gravity="top"
         android:background="?android:attr/selectableItemBackgroundBorderless"
+=======
+        android:gravity="center_vertical"
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         systemui:datePattern="@string/abbrev_wday_month_day_no_year_alarm" />
+
+    <com.android.systemui.statusbar.AlphaOptimizedImageView
+        android:id="@+id/alarm_status_collapsed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_access_alarms_small"
+        android:tint="?android:attr/textColorPrimary"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:gravity="center"
+        android:visibility="gone" />
 
     <com.android.systemui.statusbar.AlphaOptimizedButton
         android:id="@+id/alarm_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+<<<<<<< HEAD
         android:minHeight="20dp"
         android:paddingTop="3dp"
         android:drawablePadding="8dp"
@@ -77,6 +99,12 @@
         android:textAppearance="@style/TextAppearance.StatusBar.Expanded.Date"
         android:gravity="top"
         android:background="?android:attr/selectableItemBackgroundBorderless"
+=======
+        android:textAppearance="@style/TextAppearance.StatusBar.Expanded.Clock"
+        android:gravity="center_vertical"
+        android:background="@null"
+        android:clickable="false"
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         android:visibility="gone" />
 
 </LinearLayout>

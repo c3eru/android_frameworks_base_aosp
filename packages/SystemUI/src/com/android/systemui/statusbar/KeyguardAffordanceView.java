@@ -21,6 +21,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
 import android.animation.PropertyValuesHolder;
 import android.animation.ValueAnimator;
+import android.annotation.Nullable;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.CanvasProperty;
@@ -82,7 +83,11 @@ public class KeyguardAffordanceView extends ImageView implements Palette.Palette
     private boolean mSupportHardware;
     private boolean mFinishing;
     private boolean mLaunchingAffordance;
+<<<<<<< HEAD
     private ColorFilter mDefaultFilter;
+=======
+    private boolean mShouldTint = true;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
     private CanvasProperty<Float> mHwCircleRadius;
     private CanvasProperty<Float> mHwCenterX;
@@ -140,6 +145,12 @@ public class KeyguardAffordanceView extends ImageView implements Palette.Palette
                 R.dimen.keyguard_affordance_min_background_radius);
         mColorInterpolator = new ArgbEvaluator();
         mFlingAnimationUtils = new FlingAnimationUtils(mContext, 0.3f);
+    }
+
+    public void setImageDrawable(@Nullable Drawable drawable, boolean tint) {
+        super.setImageDrawable(drawable);
+        mShouldTint = tint;
+        updateIconColor();
     }
 
     @Override
@@ -204,9 +215,13 @@ public class KeyguardAffordanceView extends ImageView implements Palette.Palette
     }
 
     private void updateIconColor() {
+<<<<<<< HEAD
         if (getDrawable() == null) {
             return;
         }
+=======
+        if (!mShouldTint) return;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         Drawable drawable = getDrawable().mutate();
         float alpha = mCircleRadius / mMinBackgroundRadius;
         alpha = Math.min(1.0f, alpha);

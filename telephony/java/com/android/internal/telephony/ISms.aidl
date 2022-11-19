@@ -541,10 +541,23 @@ interface ISms {
                 in List<PendingIntent> deliveryIntents);
 
     /**
+<<<<<<< HEAD
      * Get the capacity count of sms on Icc card.
      *
      * @param subId for subId which getSmsCapacityOnIcc is queried.
      * @return capacity of ICC
      */
     int getSmsCapacityOnIccForSubscriber(int subId);
+=======
+     * Create an app-only incoming SMS request for the calling package.
+     *
+     * If an incoming text contains the token returned by this method the provided
+     * <code>PendingIntent</code> will be sent containing the SMS data.
+     *
+     * @param subId the SIM id.
+     * @param callingPkg the package name of the calling app.
+     * @param intent PendingIntent to be sent when an SMS is received containing the token.
+     */
+    String createAppSpecificSmsToken(int subId, String callingPkg, in PendingIntent intent);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 }

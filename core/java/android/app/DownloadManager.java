@@ -18,6 +18,8 @@ package android.app;
 
 import android.annotation.Nullable;
 import android.annotation.SdkConstant;
+import android.annotation.SystemApi;
+import android.annotation.SystemService;
 import android.annotation.SdkConstant.SdkConstantType;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -50,18 +52,15 @@ import java.util.List;
  * request that a URI be downloaded to a particular destination file. The download manager will
  * conduct the download in the background, taking care of HTTP interactions and retrying downloads
  * after failures or across connectivity changes and system reboots.
- *
- * Instances of this class should be obtained through
- * {@link android.content.Context#getSystemService(String)} by passing
- * {@link android.content.Context#DOWNLOAD_SERVICE}.
- *
+ * <p>
  * Apps that request downloads through this API should register a broadcast receiver for
  * {@link #ACTION_NOTIFICATION_CLICKED} to appropriately handle when the user clicks on a running
  * download in a notification or from the downloads UI.
- *
+ * <p>
  * Note that the application must have the {@link android.Manifest.permission#INTERNET}
  * permission to use this class.
  */
+@SystemService(Context.DOWNLOAD_SERVICE)
 public class DownloadManager {
 
     /**
@@ -333,6 +332,11 @@ public class DownloadManager {
      * Intent using {@link android.content.Intent#getLongArrayExtra(String)}.
      */
     public static final String EXTRA_NOTIFICATION_CLICK_DOWNLOAD_IDS = "extra_click_download_ids";
+
+    /** {@hide} */
+    @SystemApi
+    public static final String ACTION_DOWNLOAD_COMPLETED =
+            "android.intent.action.DOWNLOAD_COMPLETED";
 
     /**
      * columns to request from DownloadProvider.

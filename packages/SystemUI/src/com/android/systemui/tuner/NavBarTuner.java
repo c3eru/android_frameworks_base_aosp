@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
@@ -14,48 +14,6 @@
 
 package com.android.systemui.tuner;
 
-import android.annotation.Nullable;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Fragment;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.res.ColorStateList;
-import android.content.res.Configuration;
-import android.content.res.TypedArray;
-import android.graphics.Canvas;
-import android.graphics.drawable.Drawable;
-import android.net.Uri;
-import android.os.Bundle;
-import android.provider.Settings;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.helper.ItemTouchHelper;
-import android.util.TypedValue;
-import android.view.Display;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.MotionEvent;
-import android.view.Surface;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.SeekBar;
-import android.widget.TextView;
-
-import com.android.systemui.R;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.BACK;
-import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.BUTTON_SEPARATOR;
-import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.CLIPBOARD;
-import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.GRAVITY_SEPARATOR;
-import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.HOME;
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.KEY;
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.KEY_CODE_END;
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.KEY_CODE_START;
@@ -63,27 +21,78 @@ import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.KEY
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.MENU_IME;
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.MENU_IME_ALWAYS_SHOW;
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.NAVSPACE;
+import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.NAV_BAR_LEFT;
+import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.NAV_BAR_RIGHT;
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.NAV_BAR_VIEWS;
+<<<<<<< HEAD
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.RECENT;
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.SEARCH;
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.SIZE_MOD_END;
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.SIZE_MOD_START;
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.extractButton;
-import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.extractSize;
+import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.extractImage;
+import static com.android.systemui.statusbar.phone.NavigationBarInflaterView.extractKeycode;
 
-public class NavBarTuner extends Fragment implements TunerService.Tunable {
+import android.annotation.Nullable;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
+import android.content.res.Resources;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Paint.FontMetricsInt;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.Icon;
+import android.os.Bundle;
+import android.os.Handler;
+import android.support.v14.preference.PreferenceFragment;
+import android.support.v7.preference.DropDownPreference;
+import android.support.v7.preference.ListPreference;
+import android.support.v7.preference.Preference;
+import android.support.v7.preference.Preference.OnPreferenceChangeListener;
+import android.support.v7.preference.Preference.OnPreferenceClickListener;
+import android.support.v7.preference.PreferenceCategory;
+import android.text.SpannableStringBuilder;
+import android.text.style.ImageSpan;
+import android.util.Log;
+import android.util.TypedValue;
+import android.view.KeyEvent;
+import android.widget.EditText;
 
-    private static final int SAVE = Menu.FIRST + 1;
-    private static final int RESET = Menu.FIRST + 2;
-    private static final int READ_REQUEST = 42;
+import com.android.systemui.Dependency;
+import com.android.systemui.R;
+import com.android.systemui.statusbar.phone.NavigationBarInflaterView;
+import com.android.systemui.tuner.TunerService.Tunable;
 
-    private static final float PREVIEW_SCALE = .95f;
-    private static final float PREVIEW_SCALE_LANDSCAPE = .75f;
+import java.util.ArrayList;
 
-    private NavBarAdapter mNavBarAdapter;
-    private PreviewNavInflater mPreview;
+public class NavBarTuner extends TunerPreferenceFragment {
+
+    private static final String LAYOUT = "layout";
+    private static final String LEFT = "left";
+    private static final String RIGHT = "right";
+
+    private static final String TYPE = "type";
+    private static final String KEYCODE = "keycode";
+    private static final String ICON = "icon";
+
+    private static final int[][] ICONS = new int[][]{
+            {R.drawable.ic_qs_circle, R.string.tuner_circle},
+            {R.drawable.ic_add, R.string.tuner_plus},
+            {R.drawable.ic_remove, R.string.tuner_minus},
+            {R.drawable.ic_left, R.string.tuner_left},
+            {R.drawable.ic_right, R.string.tuner_right},
+            {R.drawable.ic_menu, R.string.tuner_menu},
+    };
+
+    private final ArrayList<Tunable> mTunables = new ArrayList<>();
+    private Handler mHandler;
 
     @Override
+<<<<<<< HEAD
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
             Bundle savedInstanceState) {
         final View view = inflater.inflate(R.layout.nav_bar_tuner, container, false);
@@ -128,75 +137,80 @@ public class NavBarTuner extends Fragment implements TunerService.Tunable {
 
     private void notifyChanged() {
         mPreview.onTuningChanged(NAV_BAR_VIEWS, mNavBarAdapter.getNavString());
+=======
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        mHandler = new Handler();
+        super.onCreate(savedInstanceState);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     @Override
-    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        RecyclerView recyclerView = (RecyclerView) view.findViewById(android.R.id.list);
-        final Context context = getContext();
-        recyclerView.setLayoutManager(new LinearLayoutManager(context));
-        mNavBarAdapter = new NavBarAdapter(context);
-        recyclerView.setAdapter(mNavBarAdapter);
-        recyclerView.addItemDecoration(new Dividers(context));
-        final ItemTouchHelper itemTouchHelper = new ItemTouchHelper(mNavBarAdapter.mCallbacks);
-        mNavBarAdapter.setTouchHelper(itemTouchHelper);
-        itemTouchHelper.attachToRecyclerView(recyclerView);
-
-        TunerService.get(getContext()).addTunable(this, NAV_BAR_VIEWS);
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        getActivity().getActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
     @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        TunerService.get(getContext()).removeTunable(this);
+    public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
+        addPreferencesFromResource(R.xml.nav_bar_tuner);
+        bindLayout((ListPreference) findPreference(LAYOUT));
+        bindButton(NAV_BAR_LEFT, NAVSPACE, LEFT);
+        bindButton(NAV_BAR_RIGHT, MENU_IME, RIGHT);
     }
 
     @Override
-    public void onTuningChanged(String key, String navLayout) {
-        if (!NAV_BAR_VIEWS.equals(key)) return;
-        Context context = getContext();
-        if (navLayout == null) {
-            navLayout = context.getString(R.string.config_navBarLayout);
-        }
-        String[] views = navLayout.split(GRAVITY_SEPARATOR);
-        String[] groups = new String[] { NavBarAdapter.START, NavBarAdapter.CENTER,
-                NavBarAdapter.END};
-        CharSequence[] groupLabels = new String[] { getString(R.string.start),
-                getString(R.string.center), getString(R.string.end) };
-        mNavBarAdapter.clear();
-        for (int i = 0; i < 3; i++) {
-            mNavBarAdapter.addButton(groups[i], groupLabels[i]);
-            for (String button : views[i].split(BUTTON_SEPARATOR)) {
-                mNavBarAdapter.addButton(button, getLabel(button, context));
+    public void onDestroy() {
+        super.onDestroy();
+        mTunables.forEach(t -> Dependency.get(TunerService.class).removeTunable(t));
+    }
+
+    private void addTunable(Tunable tunable, String... keys) {
+        mTunables.add(tunable);
+        Dependency.get(TunerService.class).addTunable(tunable, keys);
+    }
+
+    private void bindLayout(ListPreference preference) {
+        addTunable((key, newValue) -> mHandler.post(() -> {
+            String val = newValue;
+            if (val == null) {
+                val = "default";
             }
-        }
-        mNavBarAdapter.addButton(NavBarAdapter.ADD, getString(R.string.add_button));
-        setHasOptionsMenu(true);
+            preference.setValue(val);
+        }), NAV_BAR_VIEWS);
+        preference.setOnPreferenceChangeListener((preference1, newValue) -> {
+            String val = (String) newValue;
+            if ("default".equals(val)) val = null;
+            Dependency.get(TunerService.class).setValue(NAV_BAR_VIEWS, val);
+            return true;
+        });
     }
 
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        // TODO: Show save button conditionally, only when there are changes.
-        menu.add(Menu.NONE, SAVE, Menu.NONE, getString(R.string.save))
-                .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-        menu.add(Menu.NONE, RESET, Menu.NONE, getString(R.string.reset));
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == SAVE) {
-            if (!mNavBarAdapter.hasHomeButton()) {
-                new AlertDialog.Builder(getContext())
-                        .setTitle(R.string.no_home_title)
-                        .setMessage(R.string.no_home_message)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show();
+    private void bindButton(String setting, String def, String k) {
+        ListPreference type = (ListPreference) findPreference(TYPE + "_" + k);
+        Preference keycode = findPreference(KEYCODE + "_" + k);
+        ListPreference icon = (ListPreference) findPreference(ICON + "_" + k);
+        setupIcons(icon);
+        addTunable((key, newValue) -> mHandler.post(() -> {
+            String val = newValue;
+            if (val == null) {
+                val = def;
+            }
+            String button = extractButton(val);
+            if (button.startsWith(KEY)) {
+                type.setValue(KEY);
+                String uri = extractImage(button);
+                int code = extractKeycode(button);
+                icon.setValue(uri);
+                updateSummary(icon);
+                keycode.setSummary(code + "");
+                keycode.setVisible(true);
+                icon.setVisible(true);
             } else {
-                Settings.Secure.putString(getContext().getContentResolver(),
-                        NAV_BAR_VIEWS, mNavBarAdapter.getNavString());
+                type.setValue(button);
+                keycode.setVisible(false);
+                icon.setVisible(false);
             }
+<<<<<<< HEAD
             return true;
         } else if (item.getItemId() == RESET) {
             Settings.Secure.putString(getContext().getContentResolver(),
@@ -608,6 +622,97 @@ public class NavBarTuner extends Fragment implements TunerService.Tunable {
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 // Don't care.
             }
+=======
+        }), setting);
+        OnPreferenceChangeListener listener = (preference, newValue) -> {
+            mHandler.post(() -> {
+                setValue(setting, type, keycode, icon);
+                updateSummary(icon);
+            });
+            return true;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         };
+        type.setOnPreferenceChangeListener(listener);
+        icon.setOnPreferenceChangeListener(listener);
+        keycode.setOnPreferenceClickListener(preference -> {
+            EditText editText = new EditText(getContext());
+            new AlertDialog.Builder(getContext())
+                    .setTitle(preference.getTitle())
+                    .setView(editText)
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                        int code = KeyEvent.KEYCODE_ENTER;
+                        try {
+                            code = Integer.parseInt(editText.getText().toString());
+                        } catch (Exception e) {
+                        }
+                        keycode.setSummary(code + "");
+                        setValue(setting, type, keycode, icon);
+                    }).show();
+            return true;
+        });
+    }
+
+    private void updateSummary(ListPreference icon) {
+        try {
+            int size = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 14,
+                    getContext().getResources().getDisplayMetrics());
+            String pkg = icon.getValue().split("/")[0];
+            int id = Integer.parseInt(icon.getValue().split("/")[1]);
+            SpannableStringBuilder builder = new SpannableStringBuilder();
+            Drawable d = Icon.createWithResource(pkg, id)
+                    .loadDrawable(getContext());
+            d.setTint(Color.BLACK);
+            d.setBounds(0, 0, size, size);
+            ImageSpan span = new ImageSpan(d, ImageSpan.ALIGN_BASELINE);
+            builder.append("  ", span, 0);
+            builder.append(" ");
+            for (int i = 0; i < ICONS.length; i++) {
+                if (ICONS[i][0] == id) {
+                    builder.append(getString(ICONS[i][1]));
+                }
+            }
+            icon.setSummary(builder);
+        } catch (Exception e) {
+            Log.d("NavButton", "Problem with summary", e);
+            icon.setSummary(null);
+        }
+    }
+
+    private void setValue(String setting, ListPreference type, Preference keycode,
+            ListPreference icon) {
+        String button = type.getValue();
+        if (KEY.equals(button)) {
+            String uri = icon.getValue();
+            int code = KeyEvent.KEYCODE_ENTER;
+            try {
+                code = Integer.parseInt(keycode.getSummary().toString());
+            } catch (Exception e) {
+            }
+            button = button + KEY_CODE_START + code + KEY_IMAGE_DELIM + uri + KEY_CODE_END;
+        }
+        Dependency.get(TunerService.class).setValue(setting, button);
+    }
+
+    private void setupIcons(ListPreference icon) {
+        CharSequence[] labels = new CharSequence[ICONS.length];
+        CharSequence[] values = new CharSequence[ICONS.length];
+        int size = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 14,
+                getContext().getResources().getDisplayMetrics());
+        for (int i = 0; i < ICONS.length; i++) {
+            SpannableStringBuilder builder = new SpannableStringBuilder();
+            Drawable d = Icon.createWithResource(getContext().getPackageName(), ICONS[i][0])
+                    .loadDrawable(getContext());
+            d.setTint(Color.BLACK);
+            d.setBounds(0, 0, size, size);
+            ImageSpan span = new ImageSpan(d, ImageSpan.ALIGN_BASELINE);
+            builder.append("  ", span, 0);
+            builder.append(" ");
+            builder.append(getString(ICONS[i][1]));
+            labels[i] = builder;
+            values[i] = getContext().getPackageName() + "/" + ICONS[i][0];
+        }
+        icon.setEntries(labels);
+        icon.setEntryValues(values);
     }
 }

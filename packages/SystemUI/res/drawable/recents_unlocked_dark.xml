@@ -51,4 +51,8 @@
                 android:interpolator="@android:anim/accelerate_decelerate_interpolator"/>
         </aapt:attr>
     </target>
+<<<<<<< HEAD
 </animated-vector>
+=======
+</animated-vector>
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040

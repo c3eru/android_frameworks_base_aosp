@@ -15,88 +15,46 @@
  */
 
 package android.app;
-
-import android.annotation.UserIdInt;
-import android.app.ActivityManager.StackInfo;
-import android.app.assist.AssistContent;
-import android.app.assist.AssistStructure;
-import android.content.ComponentName;
-import android.content.IIntentReceiver;
-import android.content.IIntentSender;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.IntentSender;
-import android.content.UriPermission;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.ConfigurationInfo;
-import android.content.pm.IPackageDataObserver;
-import android.content.pm.ParceledListSlice;
-import android.content.pm.UserInfo;
-import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.Point;
-import android.graphics.Rect;
-import android.net.Uri;
-import android.os.Binder;
-import android.os.Bundle;
-import android.os.Debug;
 import android.os.IBinder;
-import android.os.IProgressListener;
-import android.os.Parcel;
-import android.os.ParcelFileDescriptor;
-import android.os.Parcelable;
-import android.os.PersistableBundle;
-import android.os.RemoteException;
-import android.os.ServiceManager;
-import android.os.StrictMode;
-import android.service.voice.IVoiceInteractionSession;
-import android.text.TextUtils;
-import android.util.Log;
-import android.util.Singleton;
-import com.android.internal.app.IVoiceInteractor;
-import com.android.internal.os.IResultReceiver;
 
-import java.util.ArrayList;
-import java.util.List;
-
-/** {@hide} */
-public abstract class ActivityManagerNative extends Binder implements IActivityManager
-{
+/**
+ * {@hide}
+ * @deprecated will be removed soon. See individual methods for alternatives.
+ */
+@Deprecated
+public abstract class ActivityManagerNative {
     /**
      * Cast a Binder object into an activity manager interface, generating
      * a proxy if needed.
+     *
+     * @deprecated use IActivityManager.Stub.asInterface instead.
      */
     static public IActivityManager asInterface(IBinder obj) {
-        if (obj == null) {
-            return null;
-        }
-        IActivityManager in =
-            (IActivityManager)obj.queryLocalInterface(descriptor);
-        if (in != null) {
-            return in;
-        }
-
-        return new ActivityManagerProxy(obj);
+        return IActivityManager.Stub.asInterface(obj);
     }
 
     /**
      * Retrieve the system's default/global activity manager.
+     *
+     * @deprecated use ActivityManager.getService instead.
      */
     static public IActivityManager getDefault() {
-        return gDefault.get();
+        return ActivityManager.getService();
     }
 
     /**
      * Convenience for checking whether the system is ready.  For internal use only.
+     *
+     * @deprecated use ActivityManagerInternal.isSystemReady instead.
      */
     static public boolean isSystemReady() {
-        if (!sSystemReady) {
-            sSystemReady = getDefault().testIsSystemReady();
-        }
-        return sSystemReady;
+        return ActivityManager.isSystemReady();
     }
-    static volatile boolean sSystemReady = false;
 
+    /**
+     * @deprecated use ActivityManager.broadcastStickyIntent instead.
+     */
     static public void broadcastStickyIntent(Intent intent, String permission, int userId) {
         broadcastStickyIntent(intent, permission, AppOpsManager.OP_NONE, userId);
     }
@@ -104,39 +62,36 @@ public abstract class ActivityManagerNative extends Binder implements IActivityM
     /**
      * Convenience for sending a sticky broadcast.  For internal use only.
      * If you don't care about permission, use null.
+     *
+     * @deprecated use ActivityManager.broadcastStickyIntent instead.
      */
     static public void broadcastStickyIntent(Intent intent, String permission, int appOp,
             int userId) {
-        try {
-            getDefault().broadcastIntent(
-                    null, intent, null, null, Activity.RESULT_OK, null, null,
-                    null /*permission*/, appOp, null, false, true, userId);
-        } catch (RemoteException ex) {
-        }
+        ActivityManager.broadcastStickyIntent(intent, appOp, userId);
     }
 
+    /**
+     * @deprecated use ActivityManager.noteWakeupAlarm instead.
+     */
     static public void noteWakeupAlarm(PendingIntent ps, int sourceUid, String sourcePkg,
             String tag) {
-        try {
-            getDefault().noteWakeupAlarm((ps != null) ? ps.getTarget() : null,
-                    sourceUid, sourcePkg, tag);
-        } catch (RemoteException ex) {
-        }
+        ActivityManager.noteWakeupAlarm(ps, sourceUid, sourcePkg, tag);
     }
 
+    /**
+     * @deprecated use ActivityManager.noteAlarmStart instead.
+     */
     static public void noteAlarmStart(PendingIntent ps, int sourceUid, String tag) {
-        try {
-            getDefault().noteAlarmStart((ps != null) ? ps.getTarget() : null, sourceUid, tag);
-        } catch (RemoteException ex) {
-        }
+        ActivityManager.noteAlarmStart(ps, sourceUid, tag);
     }
 
+    /**
+     * @deprecated use ActivityManager.noteAlarmFinish instead.
+     */
     static public void noteAlarmFinish(PendingIntent ps, int sourceUid, String tag) {
-        try {
-            getDefault().noteAlarmFinish((ps != null) ? ps.getTarget() : null, sourceUid, tag);
-        } catch (RemoteException ex) {
-        }
+        ActivityManager.noteAlarmFinish(ps, sourceUid, tag);
     }
+<<<<<<< HEAD
 
     public ActivityManagerNative() {
         attachInterface(this, descriptor);
@@ -7116,4 +7071,6 @@ class ActivityManagerProxy implements IActivityManager
     }
 
     private IBinder mRemote;
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 }

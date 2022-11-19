@@ -29,17 +29,25 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.media.AudioManager;
 import android.media.session.MediaSessionLegacyHelper;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
+<<<<<<< HEAD
 import android.os.IPowerManager;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+=======
+import android.os.PowerManager;
+import android.os.SystemClock;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.ActionMode;
+import android.view.GestureDetector;
+import android.view.InputDevice;
 import android.view.InputQueue;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
@@ -57,27 +65,37 @@ import android.view.WindowManager;
 import android.view.WindowManagerGlobal;
 import android.widget.FrameLayout;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.view.FloatingActionMode;
 import com.android.internal.widget.FloatingToolbar;
+import com.android.systemui.Dependency;
 import com.android.systemui.R;
 import com.android.systemui.classifier.FalsingManager;
-import com.android.systemui.statusbar.BaseStatusBar;
 import com.android.systemui.statusbar.DragDownHelper;
 import com.android.systemui.statusbar.StatusBarState;
 import com.android.systemui.statusbar.stack.NotificationStackScrollLayout;
 import com.android.systemui.tuner.TunerService;
+<<<<<<< HEAD
 
 import cyanogenmod.providers.CMSettings;
+=======
+import com.android.systemui.tuner.TunerServiceImpl;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
+import lineageos.providers.LineageSettings;
 
 public class StatusBarWindowView extends FrameLayout implements TunerService.Tunable {
     public static final String TAG = "StatusBarWindowView";
-    public static final boolean DEBUG = BaseStatusBar.DEBUG;
+    public static final boolean DEBUG = StatusBar.DEBUG;
+
+    private static final String DOUBLE_TAP_SLEEP_GESTURE =
+            "lineagesystem:" + LineageSettings.System.DOUBLE_TAP_SLEEP_GESTURE;
 
     private static final String DOUBLE_TAP_SLEEP_GESTURE =
             "cmsystem:" + CMSettings.System.DOUBLE_TAP_SLEEP_GESTURE;
 
     private DragDownHelper mDragDownHelper;
+    private DoubleTapHelper mDoubleTapHelper;
     private NotificationStackScrollLayout mStackScrollLayout;
     private NotificationPanelView mNotificationPanel;
     private View mBrightnessMirror;
@@ -85,9 +103,13 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
     private int mRightInset = 0;
     private int mLeftInset = 0;
 
-    private PhoneStatusBar mService;
+    private StatusBar mService;
     private final Paint mTransparentSrcPaint = new Paint();
     private FalsingManager mFalsingManager;
+
+    private boolean mDoubleTapToSleepEnabled;
+    private int mStatusBarHeaderHeight;
+    private GestureDetector mDoubleTapGesture;
 
     // Implements the floating action mode for TextView's Cut/Copy/Past menu. Normally provided by
     // DecorView, but since this is a special window we have to roll our own.
@@ -95,6 +117,8 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
     private ActionMode mFloatingActionMode;
     private FloatingToolbar mFloatingToolbar;
     private ViewTreeObserver.OnPreDrawListener mFloatingToolbarPreDrawListener;
+    private boolean mTouchCancelled;
+    private boolean mTouchActive;
 
     private int mStatusBarHeaderHeight;
 
@@ -107,6 +131,13 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
         mTransparentSrcPaint.setColor(0);
         mTransparentSrcPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
         mFalsingManager = FalsingManager.getInstance(context);
+<<<<<<< HEAD
+=======
+        mDoubleTapHelper = new DoubleTapHelper(this, active -> {}, () -> {
+            mService.wakeUpIfDozing(SystemClock.uptimeMillis(), this);
+            return true;
+        }, null, null);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         mStatusBarHeaderHeight = context
                 .getResources().getDimensionPixelSize(R.dimen.status_bar_header_height);
     }
@@ -149,7 +180,6 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
     }
 
     private void applyMargins() {
-        mService.mScrimController.setLeftInset(mLeftInset);
         final int N = getChildCount();
         for (int i = 0; i < N; i++) {
             View child = getChildAt(i);
@@ -192,15 +222,25 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
         }
     }
 
+<<<<<<< HEAD
     public void setService(PhoneStatusBar service) {
+=======
+    public void setService(StatusBar service) {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         mService = service;
-        mDragDownHelper = new DragDownHelper(getContext(), this, mStackScrollLayout, mService);
+        setDragDownHelper(new DragDownHelper(getContext(), this, mStackScrollLayout, mService));
+    }
+
+    @VisibleForTesting
+    void setDragDownHelper(DragDownHelper dragDownHelper) {
+        mDragDownHelper = dragDownHelper;
     }
 
     @Override
     protected void onAttachedToWindow () {
         super.onAttachedToWindow();
 
+<<<<<<< HEAD
         TunerService.get(mContext).addTunable(this, DOUBLE_TAP_SLEEP_GESTURE);
         mDoubleTapGesture = new GestureDetector(mContext, new GestureDetector.SimpleOnGestureListener() {
             @Override
@@ -211,6 +251,20 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
                     pm.goToSleep(e.getEventTime());
                 else
                     Log.d(TAG, "getSystemService returned null PowerManager");
+=======
+        Dependency.get(TunerService.class).addTunable(this, DOUBLE_TAP_SLEEP_GESTURE);
+        mDoubleTapGesture = new GestureDetector(mContext,
+                new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                PowerManager pm = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
+                if (DEBUG) Log.d(TAG, "Gesture!!");
+                if (pm != null) {
+                    pm.goToSleep(e.getEventTime());
+                } else {
+                    Log.d(TAG, "getSystemService returned null PowerManager");
+                }
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
                 return true;
             }
@@ -234,7 +288,11 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+<<<<<<< HEAD
         TunerService.get(mContext).removeTunable(this);
+=======
+        Dependency.get(TunerService.class).removeTunable(this);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     @Override
@@ -264,7 +322,8 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
             case KeyEvent.KEYCODE_VOLUME_DOWN:
             case KeyEvent.KEYCODE_VOLUME_UP:
                 if (mService.isDozing()) {
-                    MediaSessionLegacyHelper.getHelper(mContext).sendVolumeKeyEvent(event, true);
+                    MediaSessionLegacyHelper.getHelper(mContext).sendVolumeKeyEvent(
+                            event, AudioManager.USE_DEFAULT_STREAM_TYPE, true);
                     return true;
                 }
                 break;
@@ -274,6 +333,20 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
+        boolean isDown = ev.getActionMasked() == MotionEvent.ACTION_DOWN;
+        if (isDown && mNotificationPanel.isFullyCollapsed()) {
+            mNotificationPanel.startExpandLatencyTracking();
+        }
+        if (isDown) {
+            mTouchActive = true;
+            mTouchCancelled = false;
+        } else if (ev.getActionMasked() == MotionEvent.ACTION_UP
+                || ev.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+            mTouchActive = false;
+        }
+        if (mTouchCancelled) {
+            return false;
+        }
         mFalsingManager.onTouchEvent(ev, getWidth(), getHeight());
         if (mBrightnessMirror != null && mBrightnessMirror.getVisibility() == VISIBLE) {
             // Disallow new pointers while the brightness mirror is visible. This is so that you
@@ -283,8 +356,11 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
                 return false;
             }
         }
-        if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) {
+        if (isDown) {
             mStackScrollLayout.closeControlsIfOutsideTouch(ev);
+        }
+        if (mService.isDozing()) {
+            mService.mDozeScrimController.extendPulse();
         }
 
         return super.dispatchTouchEvent(ev);
@@ -292,6 +368,10 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
+        if (mService.isDozing() && !mStackScrollLayout.hasPulsingNotifications()) {
+            // Capture all touch events in always-on.
+            return true;
+        }
         boolean intercept = false;
         if (mDoubleTapToSleepEnabled
                 && ev.getY() < mStatusBarHeaderHeight) {
@@ -301,12 +381,9 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
         if (mNotificationPanel.isFullyExpanded()
                 && mStackScrollLayout.getVisibility() == View.VISIBLE
                 && mService.getBarState() == StatusBarState.KEYGUARD
-                && !mService.isBouncerShowing()) {
+                && !mService.isBouncerShowing()
+                && !mService.isDozing()) {
             intercept = mDragDownHelper.onInterceptTouchEvent(ev);
-            // wake up on a touch down event, if dozing
-            if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                mService.wakeUpIfDozing(ev.getEventTime(), ev);
-            }
         }
         if (!intercept) {
             super.onInterceptTouchEvent(ev);
@@ -324,7 +401,13 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         boolean handled = false;
-        if (mService.getBarState() == StatusBarState.KEYGUARD) {
+        if (mService.isDozing()) {
+            mDoubleTapHelper.onTouchEvent(ev);
+            handled = true;
+        }
+        if ((mService.getBarState() == StatusBarState.KEYGUARD && !handled)
+                || mDragDownHelper.isDraggingDown()) {
+            // we still want to finish our drag down gesture when locking the screen
             handled = mDragDownHelper.onTouchEvent(ev);
         }
         if (!handled) {
@@ -375,6 +458,18 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
         }
     }
 
+    public void cancelCurrentTouch() {
+        if (mTouchActive) {
+            final long now = SystemClock.uptimeMillis();
+            MotionEvent event = MotionEvent.obtain(now, now,
+                    MotionEvent.ACTION_CANCEL, 0.0f, 0.0f, 0);
+            event.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+            dispatchTouchEvent(event);
+            event.recycle();
+            mTouchCancelled = true;
+        }
+    }
+
     public class LayoutParams extends FrameLayout.LayoutParams {
 
         public boolean ignoreRightInset;
@@ -408,8 +503,9 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
             mFloatingActionMode.finish();
         }
         cleanupFloatingActionModeViews();
+        mFloatingToolbar = new FloatingToolbar(mContext, mFakeWindow);
         final FloatingActionMode mode =
-                new FloatingActionMode(mContext, callback, originatingView);
+                new FloatingActionMode(mContext, callback, originatingView, mFloatingToolbar);
         mFloatingActionModeOriginatingView = originatingView;
         mFloatingToolbarPreDrawListener =
                 new ViewTreeObserver.OnPreDrawListener() {
@@ -424,8 +520,6 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
 
     private void setHandledFloatingActionMode(ActionMode mode) {
         mFloatingActionMode = mode;
-        mFloatingToolbar = new FloatingToolbar(mContext, mFakeWindow);
-        ((FloatingActionMode) mFloatingActionMode).setFloatingToolbar(mFloatingToolbar);
         mFloatingActionMode.invalidate();  // Will show the floating toolbar if necessary.
         mFloatingActionModeOriginatingView.getViewTreeObserver()
                 .addOnPreDrawListener(mFloatingToolbarPreDrawListener);
@@ -724,6 +818,10 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
         }
 
         @Override
+        public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {
+        }
+
+        @Override
         public void reportActivityRelaunched() {
         }
     };
@@ -736,4 +834,3 @@ public class StatusBarWindowView extends FrameLayout implements TunerService.Tun
         mDoubleTapToSleepEnabled = newValue == null || Integer.parseInt(newValue) == 1;
     }
 }
-

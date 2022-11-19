@@ -20,9 +20,9 @@ PRODUCT_COPY_FILES := \
 endif
 
 PRODUCT_PACKAGES := \
-    DroidSansFallback.ttf \
     DroidSansMono.ttf \
     AndroidClock.ttf
+<<<<<<< HEAD
 
 ifeq ($(MULTI_LANG_ENGINE),REVERIE)
 PRODUCT_PACKAGES += \
@@ -38,3 +38,5 @@ PRODUCT_PACKAGES += \
     DroidSansMyanmar.ttf
 
 endif
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040

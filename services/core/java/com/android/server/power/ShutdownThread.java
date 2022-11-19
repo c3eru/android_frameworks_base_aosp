@@ -18,8 +18,11 @@
 
 package com.android.server.power;
 
+<<<<<<< HEAD
 import android.app.ActivityManagerNative;
 import android.app.AlarmManager;
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.IActivityManager;
@@ -47,9 +50,14 @@ import android.os.UserHandle;
 import android.os.UserManager;
 import android.os.Vibrator;
 import android.os.SystemVibrator;
+<<<<<<< HEAD
 import android.os.storage.IMountService;
 import android.os.storage.IMountShutdownObserver;
 import android.provider.Settings;
+=======
+import android.os.storage.IStorageShutdownObserver;
+import android.os.storage.IStorageManager;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 import android.system.ErrnoException;
 import android.system.Os;
 import android.widget.ListView;
@@ -91,7 +99,7 @@ public final class ShutdownThread extends Thread {
     private static final int SHUTDOWN_VIBRATE_MS = 500;
 
     // state tracking
-    private static Object sIsStartedGuard = new Object();
+    private static final Object sIsStartedGuard = new Object();
     private static boolean sIsStarted = false;
 
     // recovery command
@@ -109,9 +117,6 @@ public final class ShutdownThread extends Thread {
     // Indicates whether we are rebooting into safe mode
     public static final String REBOOT_SAFEMODE_PROPERTY = "persist.sys.safemode";
     public static final String RO_SAFEMODE_PROPERTY = "ro.sys.safemode";
-
-    // Indicates whether we should stay in safe mode until ro.build.date.utc is newer than this
-    public static final String AUDIT_SAFEMODE_PROPERTY = "persist.sys.audit_safemode";
 
     // static instance of this thread
     private static final ShutdownThread sInstance = new ShutdownThread();
@@ -140,7 +145,8 @@ public final class ShutdownThread extends Thread {
      * state etc.  Must be called from a Looper thread in which its UI
      * is shown.
      *
-     * @param context Context used to display the shutdown progress dialog.
+     * @param context Context used to display the shutdown progress dialog. This must be a context
+     *                suitable for displaying UI (aka Themable).
      * @param reason code to pass to android_reboot() (e.g. "userrequested"), or null.
      * @param confirm true if user confirmation is needed before shutting down.
      */
@@ -151,6 +157,7 @@ public final class ShutdownThread extends Thread {
         shutdownInner(context, confirm);
     }
 
+<<<<<<< HEAD
     private static boolean isAdvancedRebootPossible(final Context context) {
         KeyguardManager km = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
         boolean keyguardLocked = km.inKeyguardRestrictedInputMode() && km.isKeyguardSecure();
@@ -162,6 +169,13 @@ public final class ShutdownThread extends Thread {
     }
 
     static void shutdownInner(final Context context, boolean confirm) {
+=======
+    private static void shutdownInner(final Context context, boolean confirm) {
+        // ShutdownThread is called from many places, so best to verify here that the context passed
+        // in is themed.
+        context.assertRuntimeOverlayThemable();
+
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         // ensure that only one thread is trying to power down.
         // any additional calls are just returned
         synchronized (sIsStartedGuard) {
@@ -301,7 +315,8 @@ public final class ShutdownThread extends Thread {
      * state etc.  Must be called from a Looper thread in which its UI
      * is shown.
      *
-     * @param context Context used to display the shutdown progress dialog.
+     * @param context Context used to display the shutdown progress dialog. This must be a context
+     *                suitable for displaying UI (aka Themable).
      * @param reason code to pass to the kernel (e.g. "recovery"), or null.
      * @param confirm true if user confirmation is needed before shutting down.
      */
@@ -317,7 +332,8 @@ public final class ShutdownThread extends Thread {
      * Request a reboot into safe mode.  Must be called from a Looper thread in which its UI
      * is shown.
      *
-     * @param context Context used to display the shutdown progress dialog.
+     * @param context Context used to display the shutdown progress dialog. This must be a context
+     *                suitable for displaying UI (aka Themable).
      * @param confirm true if user confirmation is needed before shutting down.
      */
     public static void rebootSafeMode(final Context context, boolean confirm) {
@@ -346,7 +362,7 @@ public final class ShutdownThread extends Thread {
         ProgressDialog pd = new ProgressDialog(context);
 
         // Path 1: Reboot to recovery for update
-        //   Condition: mReason == REBOOT_RECOVERY_UPDATE
+        //   Condition: mReason startswith REBOOT_RECOVERY_UPDATE
         //
         //  Path 1a: uncrypt needed
         //   Condition: if /cache/recovery/uncrypt_file exists but
@@ -366,6 +382,7 @@ public final class ShutdownThread extends Thread {
         // Path 3: Regular reboot / shutdown
         //   Condition: Otherwise
         //   UI: spinning circle only (no progress bar)
+<<<<<<< HEAD
         if (PowerManager.REBOOT_RECOVERY_UPDATE.equals(mReason)) {
             if (RECOVERY_COMMAND_FILE.exists()) {
                 try {
@@ -374,6 +391,11 @@ public final class ShutdownThread extends Thread {
                     } catch (IOException e) {
                 }
             }
+=======
+
+        // mReason could be "recovery-update" or "recovery-update,quiescent".
+        if (mReason != null && mReason.startsWith(PowerManager.REBOOT_RECOVERY_UPDATE)) {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
             // We need the progress bar if uncrypt will be invoked during the
             // reboot, which might be time-consuming.
             mRebootHasProgressBar = RecoverySystem.UNCRYPT_PACKAGE_FILE.exists()
@@ -392,7 +414,11 @@ public final class ShutdownThread extends Thread {
                 pd.setMessage(context.getText(
                             com.android.internal.R.string.reboot_to_update_reboot));
             }
+<<<<<<< HEAD
         } else if (PowerManager.REBOOT_RECOVERY.equals(mReason) && mRebootWipe) {
+=======
+        } else if (mReason != null && mReason.equals(PowerManager.REBOOT_RECOVERY)) {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
             // Factory reset path. Set the dialog message accordingly.
             pd.setTitle(context.getText(com.android.internal.R.string.reboot_to_reset_title));
             pd.setMessage(context.getText(
@@ -492,7 +518,8 @@ public final class ShutdownThread extends Thread {
         // First send the high-level shut down broadcast.
         mActionDone = false;
         Intent intent = new Intent(Intent.ACTION_SHUTDOWN);
-        intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+        intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND
+                | Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND);
         mContext.sendOrderedBroadcastAsUser(intent,
                 UserHandle.ALL, null, br, mHandler, 0, null, null);
 
@@ -521,7 +548,7 @@ public final class ShutdownThread extends Thread {
         Log.i(TAG, "Shutting down activity manager...");
 
         final IActivityManager am =
-            ActivityManagerNative.asInterface(ServiceManager.checkService("activity"));
+                IActivityManager.Stub.asInterface(ServiceManager.checkService("activity"));
         if (am != null) {
             try {
                 am.shutdown(MAX_BROADCAST_TIME);
@@ -549,30 +576,30 @@ public final class ShutdownThread extends Thread {
             sInstance.setRebootProgress(RADIO_STOP_PERCENT, null);
         }
 
-        // Shutdown MountService to ensure media is in a safe state
-        IMountShutdownObserver observer = new IMountShutdownObserver.Stub() {
+        // Shutdown StorageManagerService to ensure media is in a safe state
+        IStorageShutdownObserver observer = new IStorageShutdownObserver.Stub() {
             public void onShutDownComplete(int statusCode) throws RemoteException {
-                Log.w(TAG, "Result code " + statusCode + " from MountService.shutdown");
+                Log.w(TAG, "Result code " + statusCode + " from StorageManagerService.shutdown");
                 actionDone();
             }
         };
 
-        Log.i(TAG, "Shutting down MountService");
+        Log.i(TAG, "Shutting down StorageManagerService");
 
         // Set initial variables and time out time.
         mActionDone = false;
         final long endShutTime = SystemClock.elapsedRealtime() + MAX_SHUTDOWN_WAIT_TIME;
         synchronized (mActionDoneSync) {
             try {
-                final IMountService mount = IMountService.Stub.asInterface(
+                final IStorageManager storageManager = IStorageManager.Stub.asInterface(
                         ServiceManager.checkService("mount"));
-                if (mount != null) {
-                    mount.shutdown(observer);
+                if (storageManager != null) {
+                    storageManager.shutdown(observer);
                 } else {
-                    Log.w(TAG, "MountService unavailable for shutdown");
+                    Log.w(TAG, "StorageManagerService unavailable for shutdown");
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Exception during MountService shutdown", e);
+                Log.e(TAG, "Exception during StorageManagerService shutdown", e);
             }
             while (!mActionDone) {
                 long delay = endShutTime - SystemClock.elapsedRealtime();

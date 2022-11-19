@@ -1,31 +1,29 @@
 /*
+<<<<<<< HEAD
  * Copyright (C) 2014 The Android Open Source Project
  * Copyright (C) 2017 The LineageOS Project
+=======
+ * Copyright (C) 2016 The Android Open Source Project
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
  */
 
 package com.android.systemui.statusbar.policy;
 
-import android.app.ActivityManager;
-import android.content.Context;
-import android.os.RemoteException;
-import android.view.WindowManagerGlobal;
+import com.android.systemui.statusbar.policy.KeyguardMonitor.Callback;
 
-import com.android.keyguard.KeyguardUpdateMonitor;
-import com.android.keyguard.KeyguardUpdateMonitorCallback;
-import com.android.systemui.settings.CurrentUserTracker;
+public interface KeyguardMonitor extends CallbackController<Callback> {
 
+<<<<<<< HEAD
 import java.util.ArrayList;
 
 public final class KeyguardMonitor extends KeyguardUpdateMonitorCallback {
@@ -133,8 +131,17 @@ public final class KeyguardMonitor extends KeyguardUpdateMonitorCallback {
             callback.onKeyguardChanged();
         }
     }
+=======
+    boolean isSecure();
+    boolean canSkipBouncer();
+    boolean isShowing();
+    boolean isKeyguardFadingAway();
+    boolean isKeyguardGoingAway();
+    long getKeyguardFadingAwayDuration();
+    long getKeyguardFadingAwayDelay();
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
     public interface Callback {
-        void onKeyguardChanged();
+        void onKeyguardShowingChanged();
     }
 }

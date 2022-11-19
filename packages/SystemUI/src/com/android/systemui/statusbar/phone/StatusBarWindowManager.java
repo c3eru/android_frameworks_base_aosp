@@ -16,17 +16,21 @@
 
 package com.android.systemui.statusbar.phone;
 
-import android.app.ActivityManagerNative;
+import android.app.ActivityManager;
 import android.app.IActivityManager;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.Resources;
 import android.graphics.Point;
 import android.graphics.PixelFormat;
+import android.os.Binder;
 import android.os.RemoteException;
 import android.os.SystemProperties;
+<<<<<<< HEAD
 import android.os.Trace;
 import android.provider.Settings;
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -34,8 +38,8 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 
 import com.android.keyguard.R;
+import com.android.systemui.Dumpable;
 import com.android.systemui.keyguard.KeyguardViewMediator;
-import com.android.systemui.statusbar.BaseStatusBar;
 import com.android.systemui.statusbar.RemoteInputController;
 import com.android.systemui.statusbar.StatusBarState;
 import com.android.systemui.statusbar.policy.KeyguardMonitor;
@@ -50,6 +54,7 @@ import java.lang.reflect.Field;
 /**
  * Encapsulates all logic for the status bar window state management.
  */
+<<<<<<< HEAD
 public class StatusBarWindowManager implements RemoteInputController.Callback,
         TunerService.Tunable, KeyguardMonitor.Callback {
 
@@ -63,6 +68,9 @@ public class StatusBarWindowManager implements RemoteInputController.Callback,
     private static final int TYPE_LAYER_MULTIPLIER = 10000; // Refer to WindowManagerService.TYPE_LAYER_MULTIPLIER
     private static final int TYPE_LAYER_OFFSET = 1000;      // Refer to WindowManagerService.TYPE_LAYER_OFFSET
     private static final int STATUS_BAR_LAYER = 16 * TYPE_LAYER_MULTIPLIER + TYPE_LAYER_OFFSET;
+=======
+public class StatusBarWindowManager implements RemoteInputController.Callback, Dumpable {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
     private static final String TAG = "StatusBarWindowManager";
 
@@ -78,6 +86,7 @@ public class StatusBarWindowManager implements RemoteInputController.Callback,
     private boolean mKeyguardScreenRotation;
     private final float mScreenBrightnessDoze;
     private final State mCurrentState = new State();
+    private OtherwisedCollapsedListener mListener;
 
     private BlurLayer mBlurLayer;
     private boolean mShowingMedia;
@@ -86,7 +95,7 @@ public class StatusBarWindowManager implements RemoteInputController.Callback,
     public StatusBarWindowManager(Context context) {
         mContext = context;
         mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        mActivityManager = ActivityManagerNative.getDefault();
+        mActivityManager = ActivityManager.getService();
         mKeyguardScreenRotation = shouldEnableKeyguardScreenRotation();
         mScreenBrightnessDoze = mContext.getResources().getInteger(
                 com.android.internal.R.integer.config_screenBrightnessDoze) / 255f;
@@ -124,6 +133,7 @@ public class StatusBarWindowManager implements RemoteInputController.Callback,
                         | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
                         | WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS,
                 PixelFormat.TRANSLUCENT);
+        mLp.token = new Binder();
         mLp.flags |= WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
         mLp.gravity = Gravity.TOP;
         mLp.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;
@@ -161,7 +171,7 @@ public class StatusBarWindowManager implements RemoteInputController.Callback,
             }
         }
 
-        if (state.keyguardShowing && !state.backdropShowing) {
+        if (state.keyguardShowing && !state.backdropShowing && !state.dozing) {
             mLpChanged.flags |= WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER;
         } else {
             mLpChanged.flags &= ~WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER;
@@ -182,8 +192,8 @@ public class StatusBarWindowManager implements RemoteInputController.Callback,
 
     private void applyFocusableFlag(State state) {
         boolean panelFocusable = state.statusBarFocusable && state.panelExpanded;
-        if (state.keyguardShowing && state.keyguardNeedsInput && state.bouncerShowing
-                || BaseStatusBar.ENABLE_REMOTE_INPUT && state.remoteInputActive) {
+        if (state.bouncerShowing && (state.keyguardOccluded || state.keyguardNeedsInput)
+                || StatusBar.ENABLE_REMOTE_INPUT && state.remoteInputActive) {
             mLpChanged.flags &= ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
             mLpChanged.flags &= ~WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM;
         } else if (state.isKeyguardShowingAndNotOccluded() || panelFocusable) {
@@ -199,6 +209,10 @@ public class StatusBarWindowManager implements RemoteInputController.Callback,
 
     private void applyHeight(State state) {
         boolean expanded = isExpanded(state);
+        if (state.forcePluginOpen) {
+            mListener.setWouldOtherwiseCollapse(expanded);
+            expanded = true;
+        }
         if (expanded) {
             mLpChanged.height = ViewGroup.LayoutParams.MATCH_PARENT;
         } else {
@@ -400,9 +414,23 @@ public class StatusBarWindowManager implements RemoteInputController.Callback,
         apply(mCurrentState);
     }
 
+    public void setDozing(boolean dozing) {
+        mCurrentState.dozing = dozing;
+        apply(mCurrentState);
+    }
+
     public void setBarHeight(int barHeight) {
         mBarHeight = barHeight;
         apply(mCurrentState);
+    }
+
+    public void setForcePluginOpen(boolean forcePluginOpen) {
+        mCurrentState.forcePluginOpen = forcePluginOpen;
+        apply(mCurrentState);
+    }
+
+    public void setStateListener(OtherwisedCollapsedListener listener) {
+        mListener = listener;
     }
 
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
@@ -466,11 +494,13 @@ public class StatusBarWindowManager implements RemoteInputController.Callback,
         boolean backdropShowing;
 
         /**
-         * The {@link BaseStatusBar} state from the status bar.
+         * The {@link StatusBar} state from the status bar.
          */
         int statusBarState;
 
         boolean remoteInputActive;
+        boolean forcePluginOpen;
+        boolean dozing;
 
         private boolean isKeyguardShowingAndNotOccluded() {
             return keyguardShowing && !keyguardOccluded;
@@ -503,6 +533,7 @@ public class StatusBarWindowManager implements RemoteInputController.Callback,
         }
     }
 
+<<<<<<< HEAD
     @Override
     public void onTuningChanged(String key, String newValue) {
         switch (key) {
@@ -523,5 +554,14 @@ public class StatusBarWindowManager implements RemoteInputController.Callback,
     @Override
     public void onKeyguardChanged() {
         showKeyguardBlur();
+=======
+    /**
+     * Custom listener to pipe data back to plugins about whether or not the status bar would be
+     * collapsed if not for the plugin.
+     * TODO: Find cleaner way to do this.
+     */
+    public interface OtherwisedCollapsedListener {
+        void setWouldOtherwiseCollapse(boolean otherwiseCollapse);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 }

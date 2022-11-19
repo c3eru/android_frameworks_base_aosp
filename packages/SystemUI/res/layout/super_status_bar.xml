@@ -48,6 +48,7 @@
         android:layout_height="match_parent"
         android:importantForAccessibility="no"
         sysui:ignoreRightInset="true"
+        sysui:scrimColor="@color/scrim_behind_color"
         />
 
     <com.android.systemui.statusbar.AlphaOptimizedView
@@ -58,6 +59,7 @@
         sysui:ignoreRightInset="true"
         android:importantForAccessibility="no"/>
 
+<<<<<<< HEAD
     <com.android.systemui.statusbar.VisualizerView
         android:id="@+id/visualizerview"
         android:gravity="bottom"
@@ -68,8 +70,12 @@
         sysui:ignoreRightInset="true" />
 
     <include layout="@layout/status_bar"
+=======
+    <FrameLayout
+        android:id="@+id/status_bar_container"
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         android:layout_width="match_parent"
-        android:layout_height="@dimen/status_bar_height" />
+        android:layout_height="wrap_content" />
 
     <include layout="@layout/brightness_mirror" />
 
@@ -81,7 +87,7 @@
     <include layout="@layout/status_bar_expanded"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone" />
+        android:visibility="invisible" />
 
     <com.android.systemui.statusbar.ScrimView android:id="@+id/scrim_in_front"
         android:layout_width="match_parent"

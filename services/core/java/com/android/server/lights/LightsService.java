@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 /*
  * Copyright (C) 2008 The Android Open Source Project
+=======
+/* * Copyright (C) 2008 The Android Open Source Project
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
  * Copyright (C) 2015 The CyanogenMod Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -78,6 +82,7 @@ public class LightsService extends SystemService {
         }
 
         @Override
+<<<<<<< HEAD
         public void setModes(int brightnessLevel, boolean multipleLeds) {
             synchronized (this) {
                 if (mBrightnessLevel != brightnessLevel) {
@@ -88,6 +93,12 @@ public class LightsService extends SystemService {
                     mMultipleLeds = multipleLeds;
                     mModesUpdate = true;
                 }
+=======
+        public void setModes(int brightnessLevel) {
+            synchronized (this) {
+                mBrightnessLevel = brightnessLevel;
+                mModesUpdate = true;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
             }
         }
 
@@ -148,10 +159,16 @@ public class LightsService extends SystemService {
                 brightnessMode = mLastBrightnessMode;
             }
 
+<<<<<<< HEAD
             if ((mModesUpdate || color != mColor || mode != mMode || onMS != mOnMS || offMS != mOffMS ||
                     mBrightnessMode != brightnessMode || mReset)) {
+=======
+            if (!mInitialized || color != mColor || mode != mMode || onMS != mOnMS ||
+                    offMS != mOffMS || mBrightnessMode != brightnessMode || mModesUpdate) {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                 if (DEBUG) Slog.v(TAG, "setLight #" + mId + ": color=#"
                         + Integer.toHexString(color) + ": brightnessMode=" + brightnessMode);
+                mInitialized = true;
                 mLastColor = mColor;
                 mReset = false;
                 mColor = color;
@@ -163,8 +180,13 @@ public class LightsService extends SystemService {
                 Trace.traceBegin(Trace.TRACE_TAG_POWER, "setLight(" + mId + ", 0x"
                         + Integer.toHexString(color) + ")");
                 try {
+<<<<<<< HEAD
                     setLight_native(mNativePointer, mId, color, mode, onMS, offMS, brightnessMode,
                             mBrightnessLevel, mMultipleLeds ? 1 : 0);
+=======
+                    setLight_native(mId, color, mode, onMS, offMS,
+                            brightnessMode, mBrightnessLevel);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                 } finally {
                     Trace.traceEnd(Trace.TRACE_TAG_POWER);
                 }
@@ -187,15 +209,19 @@ public class LightsService extends SystemService {
         private int mLastColor;
         private boolean mVrModeEnabled;
         private boolean mUseLowPersistenceForVR;
+<<<<<<< HEAD
         private boolean mModesUpdate;
         private boolean mMultipleLeds;
         private boolean mReset = true;
+=======
+        private boolean mInitialized;
+        private boolean mLocked;
+        private boolean mModesUpdate;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     public LightsService(Context context) {
         super(context);
-
-        mNativePointer = init_native();
 
         for (int i = 0; i < LightsManager.LIGHT_ID_COUNT; i++) {
             mLights[i] = new LightImpl(i);
@@ -222,19 +248,13 @@ public class LightsService extends SystemService {
     private final LightsManager mService = new LightsManager() {
         @Override
         public Light getLight(int id) {
-            if (id < LIGHT_ID_COUNT) {
+            if (0 <= id && id < LIGHT_ID_COUNT) {
                 return mLights[id];
             } else {
                 return null;
             }
         }
     };
-
-    @Override
-    protected void finalize() throws Throwable {
-        finalize_native(mNativePointer);
-        super.finalize();
-    }
 
     private Handler mH = new Handler() {
         @Override
@@ -244,6 +264,7 @@ public class LightsService extends SystemService {
         }
     };
 
+<<<<<<< HEAD
     private static native long init_native();
     private static native void finalize_native(long ptr);
 
@@ -252,4 +273,8 @@ public class LightsService extends SystemService {
             int mMultipleLeds);
 
     private long mNativePointer;
+=======
+    static native void setLight_native(int light, int color, int mode,
+            int onMS, int offMS, int brightnessMode, int brightnessLevel);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 }

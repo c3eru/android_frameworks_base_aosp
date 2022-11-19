@@ -25,16 +25,20 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityEvent;
 
+import com.android.systemui.BatteryMeterView;
 import com.android.systemui.DejankUtils;
+import com.android.systemui.Dependency;
 import com.android.systemui.EventLogTags;
 import com.android.systemui.R;
+import com.android.systemui.statusbar.policy.DarkIconDispatcher;
+import com.android.systemui.statusbar.policy.DarkIconDispatcher.DarkReceiver;
 
 public class PhoneStatusBarView extends PanelBar {
     private static final String TAG = "PhoneStatusBarView";
-    private static final boolean DEBUG = PhoneStatusBar.DEBUG;
+    private static final boolean DEBUG = StatusBar.DEBUG;
     private static final boolean DEBUG_GESTURES = false;
 
-    PhoneStatusBar mBar;
+    StatusBar mBar;
 
     private int mBasePaddingBottom;
     private int mBasePaddingLeft;
@@ -56,6 +60,7 @@ public class PhoneStatusBarView extends PanelBar {
             }
         }
     };
+    private DarkReceiver mBattery;
 
     public PhoneStatusBarView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -67,7 +72,7 @@ public class PhoneStatusBarView extends PanelBar {
         return mBarTransitions;
     }
 
-    public void setBar(PhoneStatusBar bar) {
+    public void setBar(StatusBar bar) {
         mBar = bar;
     }
 
@@ -90,6 +95,7 @@ public class PhoneStatusBarView extends PanelBar {
     @Override
     public void onFinishInflate() {
         mBarTransitions.init();
+<<<<<<< HEAD
 
         mStatusBarContents = (ViewGroup) findViewById(R.id.status_bar_contents);
 
@@ -97,6 +103,22 @@ public class PhoneStatusBarView extends PanelBar {
         mBasePaddingTop = mStatusBarContents.getPaddingTop();
         mBasePaddingRight = mStatusBarContents.getPaddingEnd();
         mBasePaddingBottom = mStatusBarContents.getPaddingBottom();
+=======
+        mBattery = findViewById(R.id.battery);
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        // Always have Battery meters in the status bar observe the dark/light modes.
+        Dependency.get(DarkIconDispatcher.class).addDarkReceiver(mBattery);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        Dependency.get(DarkIconDispatcher.class).removeDarkReceiver(mBattery);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     @Override
@@ -129,12 +151,12 @@ public class PhoneStatusBarView extends PanelBar {
     public void onPanelCollapsed() {
         super.onPanelCollapsed();
         // Close the status bar in the next frame so we can show the end of the animation.
-        DejankUtils.postAfterTraversal(mHideExpandedRunnable);
+        post(mHideExpandedRunnable);
         mIsFullyOpenedPanel = false;
     }
 
     public void removePendingHideExpandedRunnables() {
-        DejankUtils.removeCallbacks(mHideExpandedRunnable);
+        removeCallbacks(mHideExpandedRunnable);
     }
 
     @Override
@@ -196,9 +218,6 @@ public class PhoneStatusBarView extends PanelBar {
     public void panelScrimMinFractionChanged(float minFraction) {
         if (mMinFraction != minFraction) {
             mMinFraction = minFraction;
-            if (minFraction != 0.0f) {
-                mScrimController.animateNextChange();
-            }
             updateScrimFraction();
         }
     }
@@ -211,7 +230,11 @@ public class PhoneStatusBarView extends PanelBar {
     }
 
     private void updateScrimFraction() {
-        float scrimFraction = Math.max(mPanelFraction, mMinFraction);
+        float scrimFraction = mPanelFraction;
+        if (mMinFraction < 1.0f) {
+            scrimFraction = Math.max((mPanelFraction - mMinFraction) / (1.0f - mMinFraction),
+                    0);
+        }
         mScrimController.setPanelExpansion(scrimFraction);
     }
 

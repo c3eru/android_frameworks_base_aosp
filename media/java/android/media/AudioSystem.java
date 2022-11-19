@@ -39,35 +39,39 @@ public class AudioSystem
      * If these are modified, please also update Settings.System.VOLUME_SETTINGS
      * and attrs.xml and AudioManager.java.
      */
-    /* The default audio stream */
+    /** Used to identify the default audio stream volume */
     public static final int STREAM_DEFAULT = -1;
-    /* The audio stream for phone calls */
+    /** Used to identify the volume of audio streams for phone calls */
     public static final int STREAM_VOICE_CALL = 0;
-    /* The audio stream for system sounds */
+    /** Used to identify the volume of audio streams for system sounds */
     public static final int STREAM_SYSTEM = 1;
-    /* The audio stream for the phone ring and message alerts */
+    /** Used to identify the volume of audio streams for the phone ring and message alerts */
     public static final int STREAM_RING = 2;
-    /* The audio stream for music playback */
+    /** Used to identify the volume of audio streams for music playback */
     public static final int STREAM_MUSIC = 3;
-    /* The audio stream for alarms */
+    /** Used to identify the volume of audio streams for alarms */
     public static final int STREAM_ALARM = 4;
-    /* The audio stream for notifications */
+    /** Used to identify the volume of audio streams for notifications */
     public static final int STREAM_NOTIFICATION = 5;
-    /* @hide The audio stream for phone calls when connected on bluetooth */
+    /** Used to identify the volume of audio streams for phone calls when connected on bluetooth */
     public static final int STREAM_BLUETOOTH_SCO = 6;
-    /* @hide The audio stream for enforced system sounds in certain countries (e.g camera in Japan) */
+    /** Used to identify the volume of audio streams for enforced system sounds in certain
+     * countries (e.g camera in Japan) */
     public static final int STREAM_SYSTEM_ENFORCED = 7;
-    /* @hide The audio stream for DTMF tones */
+    /** Used to identify the volume of audio streams for DTMF tones */
     public static final int STREAM_DTMF = 8;
-    /* @hide The audio stream for text to speech (TTS) */
+    /** Used to identify the volume of audio streams exclusively transmitted through the
+     *  speaker (TTS) of the device */
     public static final int STREAM_TTS = 9;
+    /** Used to identify the volume of audio streams for accessibility prompts */
+    public static final int STREAM_ACCESSIBILITY = 10;
     /**
      * @deprecated Use {@link #numStreamTypes() instead}
      */
     public static final int NUM_STREAMS = 5;
 
     // Expose only the getter method publicly so we can change it in the future
-    private static final int NUM_STREAM_TYPES = 10;
+    private static final int NUM_STREAM_TYPES = 11;
     public static final int getNumStreamTypes() { return NUM_STREAM_TYPES; }
 
     public static final String[] STREAM_NAMES = new String[] {
@@ -80,7 +84,8 @@ public class AudioSystem
         "STREAM_BLUETOOTH_SCO",
         "STREAM_SYSTEM_ENFORCED",
         "STREAM_DTMF",
-        "STREAM_TTS"
+        "STREAM_TTS",
+        "STREAM_ACCESSIBILITY"
     };
 
     /*
@@ -154,6 +159,12 @@ public class AudioSystem
      * Returns a new unused audio session ID
      */
     public static native int newAudioSessionId();
+
+    /*
+     * Returns a new unused audio player ID
+     */
+    public static native int newAudioPlayerId();
+
 
     /*
      * Sets a group generic audio configuration parameters. The use of these parameters
@@ -374,6 +385,10 @@ public class AudioSystem
     public static final int DEVICE_OUT_IP = 0x800000;
     public static final int DEVICE_OUT_BUS = 0x1000000;
     public static final int DEVICE_OUT_PROXY = 0x2000000;
+<<<<<<< HEAD
+=======
+    public static final int DEVICE_OUT_USB_HEADSET = 0x4000000;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
     public static final int DEVICE_OUT_DEFAULT = DEVICE_BIT_DEFAULT;
 
@@ -403,6 +418,10 @@ public class AudioSystem
                                               DEVICE_OUT_IP |
                                               DEVICE_OUT_BUS |
                                               DEVICE_OUT_PROXY |
+<<<<<<< HEAD
+=======
+                                              DEVICE_OUT_USB_HEADSET |
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                                               DEVICE_OUT_DEFAULT);
     public static final int DEVICE_OUT_ALL_A2DP = (DEVICE_OUT_BLUETOOTH_A2DP |
                                                    DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES |
@@ -443,7 +462,12 @@ public class AudioSystem
     public static final int DEVICE_IN_LOOPBACK = DEVICE_BIT_IN | 0x40000;
     public static final int DEVICE_IN_IP = DEVICE_BIT_IN | 0x80000;
     public static final int DEVICE_IN_BUS = DEVICE_BIT_IN | 0x100000;
+<<<<<<< HEAD
     public static final int DEVICE_IN_PROXY = DEVICE_BIT_IN | 0x2000000;
+=======
+    public static final int DEVICE_IN_PROXY = DEVICE_BIT_IN | 0x1000000;
+    public static final int DEVICE_IN_USB_HEADSET = DEVICE_BIT_IN | 0x2000000;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     public static final int DEVICE_IN_DEFAULT = DEVICE_BIT_IN | DEVICE_BIT_DEFAULT;
 
     public static final int DEVICE_IN_ALL = (DEVICE_IN_COMMUNICATION |
@@ -468,6 +492,10 @@ public class AudioSystem
                                              DEVICE_IN_IP |
                                              DEVICE_IN_BUS |
                                              DEVICE_IN_PROXY |
+<<<<<<< HEAD
+=======
+                                             DEVICE_IN_USB_HEADSET |
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                                              DEVICE_IN_DEFAULT);
     public static final int DEVICE_IN_ALL_SCO = DEVICE_IN_BLUETOOTH_SCO_HEADSET;
     public static final int DEVICE_IN_ALL_USB = (DEVICE_IN_USB_ACCESSORY |
@@ -505,6 +533,10 @@ public class AudioSystem
     public static final String DEVICE_OUT_IP_NAME = "ip";
     public static final String DEVICE_OUT_BUS_NAME = "bus";
     public static final String DEVICE_OUT_PROXY_NAME = "proxy";
+<<<<<<< HEAD
+=======
+    public static final String DEVICE_OUT_USB_HEADSET_NAME = "usb_headset";
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
     public static final String DEVICE_IN_COMMUNICATION_NAME = "communication";
     public static final String DEVICE_IN_AMBIENT_NAME = "ambient";
@@ -527,6 +559,8 @@ public class AudioSystem
     public static final String DEVICE_IN_LOOPBACK_NAME = "loopback";
     public static final String DEVICE_IN_IP_NAME = "ip";
     public static final String DEVICE_IN_BUS_NAME = "bus";
+    public static final String DEVICE_IN_PROXY_NAME = "proxy";
+    public static final String DEVICE_IN_USB_HEADSET_NAME = "usb_headset";
 
     public static String getOutputDeviceName(int device)
     {
@@ -583,6 +617,11 @@ public class AudioSystem
             return DEVICE_OUT_BUS_NAME;
         case DEVICE_OUT_PROXY:
             return DEVICE_OUT_PROXY_NAME;
+<<<<<<< HEAD
+=======
+        case DEVICE_OUT_USB_HEADSET:
+            return DEVICE_OUT_USB_HEADSET_NAME;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         case DEVICE_OUT_DEFAULT:
         default:
             return Integer.toString(device);
@@ -634,6 +673,10 @@ public class AudioSystem
             return DEVICE_IN_IP_NAME;
         case DEVICE_IN_BUS:
             return DEVICE_IN_BUS_NAME;
+        case DEVICE_IN_PROXY:
+            return DEVICE_IN_PROXY_NAME;
+        case DEVICE_IN_USB_HEADSET:
+            return DEVICE_IN_USB_HEADSET_NAME;
         case DEVICE_IN_DEFAULT:
         default:
             return Integer.toString(device);
@@ -685,6 +728,9 @@ public class AudioSystem
     public static native int setDeviceConnectionState(int device, int state,
                                                       String device_address, String device_name);
     public static native int getDeviceConnectionState(int device, String device_address);
+    public static native int handleDeviceConfigChange(int device,
+                                                      String device_address,
+                                                      String device_name);
     public static native int setPhoneState(int state);
     public static native int setForceUse(int usage, int config);
     public static native int getForceUse(int usage);
@@ -778,7 +824,8 @@ public class AudioSystem
         7,  // STREAM_BLUETOOTH_SCO
         7,  // STREAM_SYSTEM_ENFORCED
         11, // STREAM_DTMF
-        11  // STREAM_TTS
+        11, // STREAM_TTS
+        11, // STREAM_ACCESSIBILITY
     };
 
     public static String streamToString(int stream) {
@@ -810,6 +857,16 @@ public class AudioSystem
         } else {
             return PLATFORM_DEFAULT;
         }
+    }
+
+    /**
+     * @hide
+     * @return whether the system uses a single volume stream.
+     */
+    public static boolean isSingleVolume(Context context) {
+        boolean forceSingleVolume = context.getResources().getBoolean(
+                com.android.internal.R.bool.config_single_volume);
+        return getPlatformType(context) == PLATFORM_TELEVISION || forceSingleVolume;
     }
 
     public static final int DEFAULT_MUTE_STREAMS_AFFECTED =

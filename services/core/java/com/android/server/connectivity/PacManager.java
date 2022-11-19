@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.net.ProxyInfo;
+import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -110,11 +111,20 @@ public class PacManager {
             String file;
             final Uri pacUrl = mPacUrl;
             if (Uri.EMPTY.equals(pacUrl)) return;
+<<<<<<< HEAD
+=======
+            final int oldTag = TrafficStats.getAndSetThreadStatsTag(TrafficStats.TAG_SYSTEM_PAC);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
             try {
                 file = get(pacUrl);
             } catch (IOException ioe) {
                 file = null;
                 Log.w(TAG, "Failed to load PAC file: " + ioe);
+<<<<<<< HEAD
+=======
+            } finally {
+                TrafficStats.setThreadStatsTag(oldTag);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
             }
             if (file != null) {
                 synchronized (mProxyLock) {

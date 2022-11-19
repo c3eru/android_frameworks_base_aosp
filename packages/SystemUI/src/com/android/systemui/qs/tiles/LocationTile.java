@@ -22,25 +22,41 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.UserManager;
 import android.provider.Settings;
+<<<<<<< HEAD
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+=======
+import android.service.quicksettings.Tile;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 import android.widget.Switch;
 import android.widget.TextView;
 
+<<<<<<< HEAD
+=======
+import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
+import com.android.systemui.Dependency;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 import com.android.systemui.R;
-import com.android.systemui.qs.QSTile;
+import com.android.systemui.plugins.ActivityStarter;
+import com.android.systemui.qs.QSHost;
+import com.android.systemui.plugins.qs.QSTile.BooleanState;
+import com.android.systemui.qs.tileimpl.QSTileImpl;
 import com.android.systemui.statusbar.policy.KeyguardMonitor;
 import com.android.systemui.statusbar.policy.LocationController;
+<<<<<<< HEAD
 import com.android.systemui.statusbar.policy.LocationController.LocationSettingsChangeCallback;
 import com.android.systemui.volume.SegmentedButtons;
 
 import com.android.internal.logging.MetricsLogger;
 import com.android.internal.logging.MetricsProto.MetricsEvent;
+=======
+import com.android.systemui.statusbar.policy.LocationController.LocationChangeCallback;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
 /** Quick settings tile: Location **/
-public class LocationTile extends QSTile<QSTile.BooleanState> {
+public class LocationTile extends QSTileImpl<BooleanState> {
 
     private static final Intent LOCATION_SETTINGS_INTENT
             = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
@@ -58,11 +74,16 @@ public class LocationTile extends QSTile<QSTile.BooleanState> {
     private final Callback mCallback = new Callback();
     private int mLastState;
 
-    public LocationTile(Host host) {
+    public LocationTile(QSHost host) {
         super(host);
+<<<<<<< HEAD
         mController = host.getLocationController();
         mDetailAdapter = new LocationDetailAdapter();
         mKeyguard = host.getKeyguardMonitor();
+=======
+        mController = Dependency.get(LocationController.class);
+        mKeyguard = Dependency.get(KeyguardMonitor.class);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     @Override
@@ -78,10 +99,10 @@ public class LocationTile extends QSTile<QSTile.BooleanState> {
     @Override
     public void setListening(boolean listening) {
         if (listening) {
-            mController.addSettingsChangedCallback(mCallback);
+            mController.addCallback(mCallback);
             mKeyguard.addCallback(mCallback);
         } else {
-            mController.removeSettingsChangedCallback(mCallback);
+            mController.removeCallback(mCallback);
             mKeyguard.removeCallback(mCallback);
         }
     }
@@ -94,15 +115,22 @@ public class LocationTile extends QSTile<QSTile.BooleanState> {
     @Override
     protected void handleClick() {
         if (mKeyguard.isSecure() && mKeyguard.isShowing()) {
+<<<<<<< HEAD
             mHost.startRunnableDismissingKeyguard(() -> {
                 final boolean wasEnabled = mState.value;
                 mHost.openPanels();
                 MetricsLogger.action(mContext, getMetricsCategory(), !wasEnabled);
+=======
+            Dependency.get(ActivityStarter.class).postQSRunnableDismissingKeyguard(() -> {
+                final boolean wasEnabled = mState.value;
+                mHost.openPanels();
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                 mController.setLocationEnabled(!wasEnabled);
             });
             return;
         }
         final boolean wasEnabled = mState.value;
+<<<<<<< HEAD
         MetricsLogger.action(mContext, getMetricsCategory(), !wasEnabled);
         if (!wasEnabled) {
             mController.setLocationEnabled(true);
@@ -114,6 +142,8 @@ public class LocationTile extends QSTile<QSTile.BooleanState> {
     protected void handleSecondaryClick() {
         final boolean wasEnabled = mState.value;
         MetricsLogger.action(mContext, getMetricsCategory(), !wasEnabled);
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         mController.setLocationEnabled(!wasEnabled);
     }
 
@@ -165,8 +195,8 @@ public class LocationTile extends QSTile<QSTile.BooleanState> {
         if (valueChanged) {
             fireToggleStateChanged(state.value);
         }
-        state.minimalAccessibilityClassName = state.expandedAccessibilityClassName
-                = Switch.class.getName();
+        state.state = state.value ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE;
+        state.expandedAccessibilityClassName = Switch.class.getName();
     }
 
     private int getStateLabelRes(int currentState) {
@@ -198,7 +228,7 @@ public class LocationTile extends QSTile<QSTile.BooleanState> {
         }
     }
 
-    private final class Callback implements LocationSettingsChangeCallback,
+    private final class Callback implements LocationChangeCallback,
             KeyguardMonitor.Callback {
         @Override
         public void onLocationSettingsChanged(boolean enabled) {
@@ -206,7 +236,7 @@ public class LocationTile extends QSTile<QSTile.BooleanState> {
         }
 
         @Override
-        public void onKeyguardChanged() {
+        public void onKeyguardShowingChanged() {
             refreshState();
         }
     };

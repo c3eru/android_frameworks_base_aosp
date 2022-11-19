@@ -1,58 +1,48 @@
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
  */
 
 package com.android.systemui.statusbar.phone;
 
-import android.animation.ArgbEvaluator;
-import android.animation.ValueAnimator;
 import android.content.Context;
-import android.content.res.ColorStateList;
-import android.content.res.Resources;
-import android.graphics.Color;
-import android.graphics.Rect;
-import android.graphics.drawable.Icon;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.SystemClock;
-import android.os.UserHandle;
+import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 import android.util.ArraySet;
-import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+<<<<<<< HEAD
 
 import com.android.internal.statusbar.StatusBarIcon;
 import com.android.systemui.BatteryLevelTextView;
 import com.android.systemui.BatteryMeterView;
 import com.android.systemui.FontSizeUtils;
 import com.android.systemui.Interpolators;
+=======
+import android.widget.LinearLayout.LayoutParams;
+
+import com.android.internal.statusbar.StatusBarIcon;
+import com.android.systemui.Dependency;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 import com.android.systemui.R;
-import com.android.systemui.SystemUIFactory;
-import com.android.systemui.statusbar.NotificationData;
-import com.android.systemui.statusbar.SignalClusterView;
 import com.android.systemui.statusbar.StatusBarIconView;
-import com.android.systemui.tuner.TunerService;
-import com.android.systemui.tuner.TunerService.Tunable;
+import com.android.systemui.statusbar.policy.DarkIconDispatcher;
 
-import java.io.PrintWriter;
-import java.util.ArrayList;
+public interface StatusBarIconController {
 
+<<<<<<< HEAD
 import org.cyanogenmod.internal.statusbar.NetworkTraffic;
 
 /**
@@ -61,9 +51,18 @@ import org.cyanogenmod.internal.statusbar.NetworkTraffic;
  * bar.
  */
 public class StatusBarIconController extends StatusBarIconList implements Tunable {
+=======
+    public void addIconGroup(IconManager iconManager);
+    public void removeIconGroup(IconManager iconManager);
+    public void setExternalIcon(String slot);
+    public void setIcon(String slot, int resourceId, CharSequence contentDescription);
+    public void setIcon(String slot, StatusBarIcon icon);
+    public void setIconVisibility(String slotTty, boolean b);
+    public void removeIcon(String slot);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
-    public static final long DEFAULT_TINT_ANIMATION_DURATION = 120;
     public static final String ICON_BLACKLIST = "icon_blacklist";
+<<<<<<< HEAD
     public static final int DEFAULT_ICON_TINT = Color.WHITE;
 
     private Context mContext;
@@ -588,9 +587,11 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
         }
         mTransitionPending = false;
     }
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
     public static ArraySet<String> getIconBlacklist(String blackListStr) {
-        ArraySet<String> ret = new ArraySet<String>();
+        ArraySet<String> ret = new ArraySet<>();
         if (blackListStr == null) {
             blackListStr = "rotate,headset";
         }
@@ -603,6 +604,7 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
         return ret;
     }
 
+<<<<<<< HEAD
     public void onDensityOrFontScaleChanged() {
         loadDimens();
         mNotificationIconAreaController.onDensityOrFontScaleChanged(mContext);
@@ -610,20 +612,60 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
         updateBatteryLevelText();
         for (int i = 0; i < mStatusIcons.getChildCount(); i++) {
             View child = mStatusIcons.getChildAt(i);
+=======
+
+    /**
+     * Version of ViewGroup that observers state from the DarkIconDispatcher.
+     */
+    public static class DarkIconManager extends IconManager {
+        private final DarkIconDispatcher mDarkIconDispatcher;
+        private int mIconHPadding;
+
+        public DarkIconManager(LinearLayout linearLayout) {
+            super(linearLayout);
+            mIconHPadding = mContext.getResources().getDimensionPixelSize(
+                    R.dimen.status_bar_icon_padding);
+            mDarkIconDispatcher = Dependency.get(DarkIconDispatcher.class);
+        }
+
+        @Override
+        protected void onIconAdded(int index, String slot, boolean blocked,
+                StatusBarIcon icon) {
+            StatusBarIconView v = addIcon(index, slot, blocked, icon);
+            mDarkIconDispatcher.addDarkReceiver(v);
+        }
+
+        @Override
+        protected LayoutParams onCreateLayoutParams() {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, mIconSize);
             lp.setMargins(mIconHPadding, 0, mIconHPadding, 0);
-            child.setLayoutParams(lp);
+            return lp;
         }
-        for (int i = 0; i < mStatusIconsKeyguard.getChildCount(); i++) {
-            View child = mStatusIconsKeyguard.getChildAt(i);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, mIconSize);
-            child.setLayoutParams(lp);
+
+        @Override
+        protected void destroy() {
+            for (int i = 0; i < mGroup.getChildCount(); i++) {
+                mDarkIconDispatcher.removeDarkReceiver((ImageView) mGroup.getChildAt(i));
+            }
+            mGroup.removeAllViews();
         }
-        scaleBatteryMeterViews(mContext);
+
+        @Override
+        protected void onRemoveIcon(int viewIndex) {
+            mDarkIconDispatcher.removeDarkReceiver((ImageView) mGroup.getChildAt(viewIndex));
+            super.onRemoveIcon(viewIndex);
+        }
+
+        @Override
+        public void onSetIcon(int viewIndex, StatusBarIcon icon) {
+            super.onSetIcon(viewIndex, icon);
+            mDarkIconDispatcher.applyDark((ImageView) mGroup.getChildAt(viewIndex));
+        }
     }
 
+<<<<<<< HEAD
     private void updateClock() {
         mClockController.updateFontSize();
         mClockController.setPaddingRelative(
@@ -633,6 +675,82 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
                 mContext.getResources().getDimensionPixelSize(
                         R.dimen.status_bar_clock_end_padding),
                 0);
+=======
+    /**
+     * Turns info from StatusBarIconController into ImageViews in a ViewGroup.
+     */
+    public static class IconManager {
+        protected final ViewGroup mGroup;
+        protected final Context mContext;
+        protected final int mIconSize;
+
+        public IconManager(ViewGroup group) {
+            mGroup = group;
+            mContext = group.getContext();
+            mIconSize = mContext.getResources().getDimensionPixelSize(
+                    com.android.internal.R.dimen.status_bar_icon_size);
+        }
+
+        protected void onIconAdded(int index, String slot, boolean blocked,
+                StatusBarIcon icon) {
+            addIcon(index, slot, blocked, icon);
+        }
+
+        protected StatusBarIconView addIcon(int index, String slot, boolean blocked,
+                StatusBarIcon icon) {
+            StatusBarIconView view = onCreateStatusBarIconView(slot, blocked);
+            view.set(icon);
+            mGroup.addView(view, index, onCreateLayoutParams());
+            return view;
+        }
+
+        @VisibleForTesting
+        protected StatusBarIconView onCreateStatusBarIconView(String slot, boolean blocked) {
+            return new StatusBarIconView(mContext, slot, null, blocked);
+        }
+
+        protected LinearLayout.LayoutParams onCreateLayoutParams() {
+            return new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, mIconSize);
+        }
+
+        protected void destroy() {
+            mGroup.removeAllViews();
+        }
+
+        protected void onIconExternal(int viewIndex, int height) {
+            ImageView imageView = (ImageView) mGroup.getChildAt(viewIndex);
+            imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            imageView.setAdjustViewBounds(true);
+            setHeightAndCenter(imageView, height);
+        }
+
+        protected void onDensityOrFontScaleChanged() {
+            for (int i = 0; i < mGroup.getChildCount(); i++) {
+                View child = mGroup.getChildAt(i);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, mIconSize);
+                child.setLayoutParams(lp);
+            }
+        }
+
+        private void setHeightAndCenter(ImageView imageView, int height) {
+            ViewGroup.LayoutParams params = imageView.getLayoutParams();
+            params.height = height;
+            if (params instanceof LinearLayout.LayoutParams) {
+                ((LinearLayout.LayoutParams) params).gravity = Gravity.CENTER_VERTICAL;
+            }
+            imageView.setLayoutParams(params);
+        }
+
+        protected void onRemoveIcon(int viewIndex) {
+            mGroup.removeViewAt(viewIndex);
+        }
+
+        public void onSetIcon(int viewIndex, StatusBarIcon icon) {
+            StatusBarIconView view = (StatusBarIconView) mGroup.getChildAt(viewIndex);
+            view.set(icon);
+        }
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     private void updateBatteryLevelText() {

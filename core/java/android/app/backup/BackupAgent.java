@@ -900,12 +900,12 @@ public abstract class BackupAgent extends ContextWrapper {
         public void doBackup(ParcelFileDescriptor oldState,
                 ParcelFileDescriptor data,
                 ParcelFileDescriptor newState,
-                int token, IBackupManager callbackBinder) throws RemoteException {
+                long quotaBytes, int token, IBackupManager callbackBinder) throws RemoteException {
             // Ensure that we're running with the app's normal permission level
             long ident = Binder.clearCallingIdentity();
 
             if (DEBUG) Log.v(TAG, "doBackup() invoked");
-            BackupDataOutput output = new BackupDataOutput(data.getFileDescriptor());
+            BackupDataOutput output = new BackupDataOutput(data.getFileDescriptor(), quotaBytes);
 
             try {
                 BackupAgent.this.onBackup(oldState, output, newState);
@@ -974,7 +974,7 @@ public abstract class BackupAgent extends ContextWrapper {
 
         @Override
         public void doFullBackup(ParcelFileDescriptor data,
-                int token, IBackupManager callbackBinder) {
+                long quotaBytes, int token, IBackupManager callbackBinder) {
             // Ensure that we're running with the app's normal permission level
             long ident = Binder.clearCallingIdentity();
 
@@ -985,7 +985,7 @@ public abstract class BackupAgent extends ContextWrapper {
             waitForSharedPrefs();
 
             try {
-                BackupAgent.this.onFullBackup(new FullBackupDataOutput(data));
+                BackupAgent.this.onFullBackup(new FullBackupDataOutput(data, quotaBytes));
             } catch (IOException ex) {
                 Log.d(TAG, "onFullBackup (" + BackupAgent.this.getClass().getName() + ") threw", ex);
                 throw new RuntimeException(ex);
@@ -1019,10 +1019,10 @@ public abstract class BackupAgent extends ContextWrapper {
             }
         }
 
-        public void doMeasureFullBackup(int token, IBackupManager callbackBinder) {
+        public void doMeasureFullBackup(long quotaBytes, int token, IBackupManager callbackBinder) {
             // Ensure that we're running with the app's normal permission level
             final long ident = Binder.clearCallingIdentity();
-            FullBackupDataOutput measureOutput = new FullBackupDataOutput();
+            FullBackupDataOutput measureOutput = new FullBackupDataOutput(quotaBytes);
 
             waitForSharedPrefs();
             try {

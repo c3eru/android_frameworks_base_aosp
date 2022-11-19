@@ -7,7 +7,12 @@ LOCAL_MODULE := services.usb
 LOCAL_SRC_FILES += \
       $(call all-java-files-under,java)
 
-LOCAL_JAVA_LIBRARIES := services.core
+LOCAL_JAVA_LIBRARIES := services.core \
+android.hidl.manager-V1.0-java
+
+LOCAL_JAVA_LIBRARIES += org.lineageos.platform.internal
+
+LOCAL_STATIC_JAVA_LIBRARIES := android.hardware.usb-V1.0-java
 
 LOCAL_JAVA_LIBRARIES += org.cyanogenmod.platform.internal
 

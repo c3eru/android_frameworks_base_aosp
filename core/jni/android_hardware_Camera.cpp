@@ -90,6 +90,9 @@ public:
                           camera_frame_metadata_t *metadata);
     virtual void postDataTimestamp(nsecs_t timestamp, int32_t msgType, const sp<IMemory>& dataPtr);
     virtual void postRecordingFrameHandleTimestamp(nsecs_t timestamp, native_handle_t* handle);
+    virtual void postRecordingFrameHandleTimestampBatch(
+            const std::vector<nsecs_t>& timestamps,
+            const std::vector<native_handle_t*>& handles);
     void postMetadata(JNIEnv *env, int32_t msgType, camera_frame_metadata_t *metadata);
     void addCallbackBuffer(JNIEnv *env, jbyteArray cbb, int msgType);
     void setCallbackMode(JNIEnv *env, bool installed, bool manualMode);
@@ -383,6 +386,22 @@ void JNICameraContext::postRecordingFrameHandleTimestamp(nsecs_t, native_handle_
     }
 }
 
+void JNICameraContext::postRecordingFrameHandleTimestampBatch(
+        const std::vector<nsecs_t>&,
+        const std::vector<native_handle_t*>& handles) {
+    // Video buffers are not needed at app layer so just return the video buffers here.
+    // This may be called when stagefright just releases camera but there are still outstanding
+    // video buffers.
+    if (mCamera != nullptr) {
+        mCamera->releaseRecordingFrameHandleBatch(handles);
+    } else {
+        for (auto& handle : handles) {
+            native_handle_close(handle);
+            native_handle_delete(handle);
+        }
+    }
+}
+
 void JNICameraContext::postMetadata(JNIEnv *env, int32_t msgType, camera_frame_metadata_t *metadata)
 {
     jobjectArray obj = NULL;
@@ -501,6 +520,7 @@ static void android_hardware_Camera_setLongshot(JNIEnv *env, jobject thiz, jbool
     }
 }
 
+<<<<<<< HEAD
 static void android_hardware_Camera_stopLongshot(JNIEnv *env, jobject thiz)
 {
     ALOGV("stopLongshot");
@@ -516,6 +536,8 @@ static void android_hardware_Camera_stopLongshot(JNIEnv *env, jobject thiz)
     }
 }
 
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 static void android_hardware_Camera_sendHistogramData(JNIEnv *env, jobject thiz)
  {
    ALOGV("sendHistogramData" );
@@ -1186,12 +1208,18 @@ static const JNINativeMethod camMethods[] = {
   { "native_sendHistogramData",
     "()V",
      (void *)android_hardware_Camera_sendHistogramData },
+<<<<<<< HEAD
   { "native_setLongshot",
     "(Z)V",
      (void *)android_hardware_Camera_setLongshot },
   { "native_stopLongshot",
     "()V",
      (void *)android_hardware_Camera_stopLongshot },
+=======
+ { "native_setLongshot",
+     "(Z)V",
+      (void *)android_hardware_Camera_setLongshot },
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
   { "native_setParameters",
     "(Ljava/lang/String;)V",
     (void *)android_hardware_Camera_setParameters },

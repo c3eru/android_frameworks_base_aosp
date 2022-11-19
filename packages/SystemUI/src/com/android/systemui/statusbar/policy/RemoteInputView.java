@@ -53,12 +53,13 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.android.internal.logging.MetricsLogger;
-import com.android.internal.logging.MetricsProto;
+import com.android.internal.logging.nano.MetricsProto;
 import com.android.systemui.Interpolators;
 import com.android.systemui.R;
 import com.android.systemui.statusbar.ExpandableView;
 import com.android.systemui.statusbar.NotificationData;
 import com.android.systemui.statusbar.RemoteInputController;
+import com.android.systemui.statusbar.notification.NotificationViewWrapper;
 import com.android.systemui.statusbar.stack.ScrollContainer;
 import com.android.systemui.statusbar.stack.StackStateAnimator;
 
@@ -93,6 +94,7 @@ public class RemoteInputView extends LinearLayout implements View.OnClickListene
     private int mRevealR;
 
     private boolean mResetting;
+    private NotificationViewWrapper mWrapper;
 
     public RemoteInputView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -102,9 +104,9 @@ public class RemoteInputView extends LinearLayout implements View.OnClickListene
     protected void onFinishInflate() {
         super.onFinishInflate();
 
-        mProgressBar = (ProgressBar) findViewById(R.id.remote_input_progress);
+        mProgressBar = findViewById(R.id.remote_input_progress);
 
-        mSendButton = (ImageButton) findViewById(R.id.remote_input_send);
+        mSendButton = findViewById(R.id.remote_input_send);
         mSendButton.setOnClickListener(this);
 
         mEditText = (RemoteEditText) getChildAt(0);
@@ -214,11 +216,17 @@ public class RemoteInputView extends LinearLayout implements View.OnClickListene
                     @Override
                     public void onAnimationEnd(Animator animation) {
                         setVisibility(INVISIBLE);
+                        if (mWrapper != null) {
+                            mWrapper.setRemoteInputVisible(false);
+                        }
                     }
                 });
                 reveal.start();
             } else {
                 setVisibility(INVISIBLE);
+                if (mWrapper != null) {
+                    mWrapper.setRemoteInputVisible(false);
+                }
             }
         }
         MetricsLogger.action(mContext, MetricsProto.MetricsEvent.ACTION_REMOTE_INPUT_CLOSE,
@@ -271,6 +279,9 @@ public class RemoteInputView extends LinearLayout implements View.OnClickListene
                 mEntry.notification.getPackageName());
 
         setVisibility(VISIBLE);
+        if (mWrapper != null) {
+            mWrapper.setRemoteInputVisible(true);
+        }
         mController.addRemoteInput(mEntry, mToken);
 
         // Disable suggestions on non-owner (secondary) user.
@@ -296,6 +307,10 @@ public class RemoteInputView extends LinearLayout implements View.OnClickListene
         if (sending) {
             // Update came in after we sent the reply, time to reset.
             reset();
+        }
+
+        if (isActive() && mWrapper != null) {
+            mWrapper.setRemoteInputVisible(true);
         }
     }
 
@@ -464,6 +479,10 @@ public class RemoteInputView extends LinearLayout implements View.OnClickListene
             removeDetachedView(mEditText, false /* animate */);
         }
         super.dispatchFinishTemporaryDetach();
+    }
+
+    public void setWrapper(NotificationViewWrapper wrapper) {
+        mWrapper = wrapper;
     }
 
     /**

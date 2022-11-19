@@ -195,27 +195,41 @@ public class Camera {
     /* ### QC ADD-ONS: END */
 
     /**
-     * @deprecated This broadcast is no longer delivered by the system; use
-     * {@link android.app.job.JobInfo.Builder JobInfo.Builder}.{@link android.app.job.JobInfo.Builder#addTriggerContentUri}
-     * instead.
      * Broadcast Action:  A new picture is taken by the camera, and the entry of
      * the picture has been added to the media store.
      * {@link android.content.Intent#getData} is URI of the picture.
+     *
+     * <p>In {@link android.os.Build.VERSION_CODES#N Android N} this broadcast was removed, and
+     * applications are recommended to use
+     * {@link android.app.job.JobInfo.Builder JobInfo.Builder}.{@link android.app.job.JobInfo.Builder#addTriggerContentUri}
+     * instead.</p>
+     *
+     * <p>In {@link android.os.Build.VERSION_CODES#O Android O} this broadcast has been brought
+     * back, but only for <em>registered</em> receivers.  Apps that are actively running can
+     * again listen to the broadcast if they want an immediate clear signal about a picture
+     * being taken, however anything doing heavy work (or needing to be launched) as a result of
+     * this should still use JobScheduler.</p>
      */
     @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
-    @Deprecated
     public static final String ACTION_NEW_PICTURE = "android.hardware.action.NEW_PICTURE";
 
     /**
-     * @deprecated This broadcast is no longer delivered by the system; use
-     * {@link android.app.job.JobInfo.Builder JobInfo.Builder}.{@link android.app.job.JobInfo.Builder#addTriggerContentUri}
-     * instead.
      * Broadcast Action:  A new video is recorded by the camera, and the entry
      * of the video has been added to the media store.
      * {@link android.content.Intent#getData} is URI of the video.
+     *
+     * <p>In {@link android.os.Build.VERSION_CODES#N Android N} this broadcast was removed, and
+     * applications are recommended to use
+     * {@link android.app.job.JobInfo.Builder JobInfo.Builder}.{@link android.app.job.JobInfo.Builder#addTriggerContentUri}
+     * instead.</p>
+     *
+     * <p>In {@link android.os.Build.VERSION_CODES#O Android O} this broadcast has been brought
+     * back, but only for <em>registered</em> receivers.  Apps that are actively running can
+     * again listen to the broadcast if they want an immediate clear signal about a video
+     * being taken, however anything doing heavy work (or needing to be launched) as a result of
+     * this should still use JobScheduler.</p>
      */
     @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
-    @Deprecated
     public static final String ACTION_NEW_VIDEO = "android.hardware.action.NEW_VIDEO";
 
     /**
@@ -2155,6 +2169,7 @@ public class Camera {
     }
     private native final void native_setLongshot(boolean enable);
 
+<<<<<<< HEAD
     /** @hide
      * Stop longshot. Available only in ZSL.
      */
@@ -2164,6 +2179,8 @@ public class Camera {
     }
     private native final void native_stopLongshot();
 
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
      /** @hide
      * Handles the Touch Co-ordinate.
      */
@@ -4523,7 +4540,11 @@ public class Camera {
         // Example string: "(10000,26623),(10000,30000)". Return null if the
         // passing string is null or the size is 0.
         private ArrayList<int[]> splitRange(String str) {
+<<<<<<< HEAD
             if (str == null || str.isEmpty() || str.charAt(0) != '('
+=======
+            if (TextUtils.isEmpty(str) || str.charAt(0) != '('
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                     || str.charAt(str.length() - 1) != ')') {
                 Log.e(TAG, "Invalid range list string=" + str);
                 return null;
@@ -4548,7 +4569,11 @@ public class Camera {
         // Example string: "(-10,-10,0,0,300),(0,0,10,10,700)". Return null if
         // the passing string is null or the size is 0 or (0,0,0,0,0).
         private ArrayList<Area> splitArea(String str) {
+<<<<<<< HEAD
             if (str == null || str.isEmpty() || str.charAt(0) != '('
+=======
+            if (TextUtils.isEmpty(str) || str.charAt(0) != '('
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                     || str.charAt(str.length() - 1) != ')') {
                 Log.e(TAG, "Invalid area string=" + str);
                 return null;

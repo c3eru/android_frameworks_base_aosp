@@ -29,12 +29,20 @@ import android.view.WindowManagerGlobal;
 
 import com.android.internal.widget.LockPatternUtils;
 import com.android.keyguard.KeyguardUpdateMonitor;
+import com.android.keyguard.KeyguardUpdateMonitorCallback;
 import com.android.keyguard.ViewMediatorCallback;
+import com.android.systemui.DejankUtils;
+import com.android.keyguard.LatencyTracker;
+import com.android.systemui.Dependency;
 import com.android.systemui.SystemUIFactory;
+import com.android.systemui.keyguard.DismissCallbackRegistry;
 import com.android.systemui.statusbar.CommandQueue;
 import com.android.systemui.statusbar.RemoteInputController;
 
 import static com.android.keyguard.KeyguardHostView.OnDismissAction;
+import static com.android.systemui.statusbar.phone.FingerprintUnlockController.*;
+
+import java.util.ArrayList;
 
 /**
  * Manages creating, showing, hiding and resetting the keyguard within the status bar. Calls back
@@ -45,7 +53,7 @@ import static com.android.keyguard.KeyguardHostView.OnDismissAction;
 public class StatusBarKeyguardViewManager implements RemoteInputController.Callback {
 
     // When hiding the Keyguard with timing supplied from WindowManager, better be early than late.
-    private static final long HIDE_TIMING_CORRECTION_MS = -3 * 16;
+    private static final long HIDE_TIMING_CORRECTION_MS = - 16 * 3;
 
     // Delay for showing the navigation bar when the bouncer appears. This should be kept in sync
     // with the appear animations of the PIN/pattern/password views.
@@ -61,15 +69,15 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
     private static String TAG = "StatusBarKeyguardViewManager";
 
     protected final Context mContext;
+    private final StatusBarWindowManager mStatusBarWindowManager;
 
     protected LockPatternUtils mLockPatternUtils;
     protected ViewMediatorCallback mViewMediatorCallback;
-    protected PhoneStatusBar mPhoneStatusBar;
+    protected StatusBar mStatusBar;
     private ScrimController mScrimController;
     private FingerprintUnlockController mFingerprintUnlockController;
 
     private ViewGroup mContainer;
-    private StatusBarWindowManager mStatusBarWindowManager;
 
     private boolean mDeviceInteractive = false;
     private boolean mScreenTurnedOn;
@@ -84,29 +92,46 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
     private boolean mLastBouncerShowing;
     private boolean mLastBouncerDismissible;
     protected boolean mLastRemoteInputActive;
+    private boolean mLastDeferScrimFadeOut;
 
     private OnDismissAction mAfterKeyguardGoneAction;
+    private final ArrayList<Runnable> mAfterKeyguardGoneRunnables = new ArrayList<>();
     private boolean mDeviceWillWakeUp;
     private boolean mDeferScrimFadeOut;
+
+    private final KeyguardUpdateMonitorCallback mUpdateMonitorCallback =
+            new KeyguardUpdateMonitorCallback() {
+        @Override
+        public void onEmergencyCallAction() {
+
+            // Since we won't get a setOccluded call we have to reset the view manually such that
+            // the bouncer goes away.
+            if (mOccluded) {
+                reset(false /* hideBouncerWhenShowing */);
+            }
+        }
+    };
 
     public StatusBarKeyguardViewManager(Context context, ViewMediatorCallback callback,
             LockPatternUtils lockPatternUtils) {
         mContext = context;
         mViewMediatorCallback = callback;
         mLockPatternUtils = lockPatternUtils;
+        mStatusBarWindowManager = Dependency.get(StatusBarWindowManager.class);
+        KeyguardUpdateMonitor.getInstance(context).registerCallback(mUpdateMonitorCallback);
     }
 
-    public void registerStatusBar(PhoneStatusBar phoneStatusBar,
-            ViewGroup container, StatusBarWindowManager statusBarWindowManager,
+    public void registerStatusBar(StatusBar statusBar,
+            ViewGroup container,
             ScrimController scrimController,
-            FingerprintUnlockController fingerprintUnlockController) {
-        mPhoneStatusBar = phoneStatusBar;
+            FingerprintUnlockController fingerprintUnlockController,
+            DismissCallbackRegistry dismissCallbackRegistry) {
+        mStatusBar = statusBar;
         mContainer = container;
-        mStatusBarWindowManager = statusBarWindowManager;
         mScrimController = scrimController;
         mFingerprintUnlockController = fingerprintUnlockController;
         mBouncer = SystemUIFactory.getInstance().createKeyguardBouncer(mContext,
-                mViewMediatorCallback, mLockPatternUtils, mStatusBarWindowManager, container);
+                mViewMediatorCallback, mLockPatternUtils, container, dismissCallbackRegistry);
     }
 
     /**
@@ -117,37 +142,64 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
         mShowing = true;
         mStatusBarWindowManager.setKeyguardShowing(true);
         mScrimController.abortKeyguardFadingOut();
-        reset();
+        reset(true /* hideBouncerWhenShowing */);
     }
 
     /**
      * Shows the notification keyguard or the bouncer depending on
      * {@link KeyguardBouncer#needsFullscreenBouncer()}.
      */
+<<<<<<< HEAD
     protected void showBouncerOrKeyguard(final boolean isBackPressed) {
+=======
+    protected void showBouncerOrKeyguard(boolean hideBouncerWhenShowing, boolean isBackPressed) {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         switch (mBouncer.needsFullscreenBouncer()) {
             case KeyguardBouncer.UNLOCK_SEQUENCE_FORCE_BOUNCER:
                 // SIM PIN/PUK
                 // The keyguard might be showing (already). So we need to hide it.
+<<<<<<< HEAD
                 mPhoneStatusBar.hideKeyguard();
+=======
+                mStatusBar.hideKeyguard();
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                 mBouncer.show(true /* resetSecuritySelection */);
                 break;
             case KeyguardBouncer.UNLOCK_SEQUENCE_BOUNCER_FIRST:
                 // Pattern / PIN / password with "Directly show " enabled
                 if (isBackPressed) {
+<<<<<<< HEAD
                     mPhoneStatusBar.showKeyguard();
                     mBouncer.hide(false /* destroyView */);
                     mBouncer.prepare();
                 } else {
                     // The keyguard might be showing (already). So we need to hide it.
                     mPhoneStatusBar.hideKeyguard();
+=======
+                    mStatusBar.showKeyguard();
+                    if (hideBouncerWhenShowing) {
+                        mBouncer.hide(false /* destroyView */);
+                        mBouncer.prepare();
+                    }
+                } else {
+                    // The keyguard might be showing (already). So we need to hide it.
+                    mStatusBar.hideKeyguard();
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                     mBouncer.show(true /* resetSecuritySelection */);
                 }
                 break;
             case KeyguardBouncer.UNLOCK_SEQUENCE_DEFAULT:
+<<<<<<< HEAD
                 mPhoneStatusBar.showKeyguard();
                 mBouncer.hide(false /* destroyView */);
                 mBouncer.prepare();
+=======
+                mStatusBar.showKeyguard();
+                if (hideBouncerWhenShowing) {
+                    mBouncer.hide(false /* destroyView */);
+                    mBouncer.prepare();
+                }
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
                 break;
             default:
                 break;
@@ -167,24 +219,39 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
             if (!afterKeyguardGone) {
                 mBouncer.showWithDismissAction(r, cancelAction);
             } else {
-                mBouncer.show(false /* resetSecuritySelection */);
                 mAfterKeyguardGoneAction = r;
+                mBouncer.show(false /* resetSecuritySelection */);
             }
         }
         updateStates();
     }
 
     /**
+     * Adds a {@param runnable} to be executed after Keyguard is gone.
+     */
+    public void addAfterKeyguardGoneRunnable(Runnable runnable) {
+        mAfterKeyguardGoneRunnables.add(runnable);
+    }
+
+    /**
      * Reset the state of the view.
      */
+<<<<<<< HEAD
     public void reset(final boolean isBackPressed) {
+=======
+    public void reset(boolean hideBouncerWhenShowing, boolean isBackPressed) {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         if (mShowing) {
             if (mOccluded) {
-                mPhoneStatusBar.hideKeyguard();
-                mPhoneStatusBar.stopWaitingForKeyguardExit();
+                mStatusBar.hideKeyguard();
+                mStatusBar.stopWaitingForKeyguardExit();
                 mBouncer.hide(false /* destroyView */);
             } else {
+<<<<<<< HEAD
                 showBouncerOrKeyguard(isBackPressed);
+=======
+                showBouncerOrKeyguard(hideBouncerWhenShowing, isBackPressed);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
             }
             KeyguardUpdateMonitor.getInstance(mContext).sendKeyguardReset();
             updateStates();
@@ -194,17 +261,22 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
     /**
      * Reset the state of the view; not caused by back press
      */
+<<<<<<< HEAD
     public void reset() {
         reset(false);
+=======
+    public void reset(boolean hideBouncerWhenShowing) {
+        reset(hideBouncerWhenShowing, false);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     public void onStartedGoingToSleep() {
-        mPhoneStatusBar.onStartedGoingToSleep();
+        mStatusBar.onStartedGoingToSleep();
     }
 
     public void onFinishedGoingToSleep() {
         mDeviceInteractive = false;
-        mPhoneStatusBar.onFinishedGoingToSleep();
+        mStatusBar.onFinishedGoingToSleep();
         mBouncer.onScreenTurnedOff();
     }
 
@@ -212,13 +284,13 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
         Trace.beginSection("StatusBarKeyguardViewManager#onStartedWakingUp");
         mDeviceInteractive = true;
         mDeviceWillWakeUp = false;
-        mPhoneStatusBar.onStartedWakingUp();
+        mStatusBar.onStartedWakingUp();
         Trace.endSection();
     }
 
     public void onScreenTurningOn() {
         Trace.beginSection("StatusBarKeyguardViewManager#onScreenTurningOn");
-        mPhoneStatusBar.onScreenTurningOn();
+        mStatusBar.onScreenTurningOn();
         Trace.endSection();
     }
 
@@ -235,8 +307,12 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
                     true /* skipFirstFrame */);
             updateStates();
         }
+<<<<<<< HEAD
         mPhoneStatusBar.onScreenTurnedOn();
         mStatusBarWindowManager.onKeyguardChanged();
+=======
+        mStatusBar.onScreenTurnedOn();
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         Trace.endSection();
     }
 
@@ -248,15 +324,11 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
 
     public void onScreenTurnedOff() {
         mScreenTurnedOn = false;
-        mPhoneStatusBar.onScreenTurnedOff();
+        mStatusBar.onScreenTurnedOff();
     }
 
     public void notifyDeviceWakeUpRequested() {
         mDeviceWillWakeUp = !mDeviceInteractive;
-    }
-
-    public void verifyUnlock() {
-        dismiss();
     }
 
     public void setNeedsInput(boolean needsInput) {
@@ -268,27 +340,41 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
     }
 
     public void setOccluded(boolean occluded, boolean animate) {
+        if (occluded != mOccluded) {
+            mStatusBar.onKeyguardOccludedChanged(occluded);
+        }
         if (occluded && !mOccluded && mShowing) {
-            if (mPhoneStatusBar.isInLaunchTransition()) {
+            if (mStatusBar.isInLaunchTransition()) {
                 mOccluded = true;
-                mPhoneStatusBar.fadeKeyguardAfterLaunchTransition(null /* beforeFading */,
+                mStatusBar.fadeKeyguardAfterLaunchTransition(null /* beforeFading */,
                         new Runnable() {
                             @Override
                             public void run() {
                                 mStatusBarWindowManager.setKeyguardOccluded(mOccluded);
-                                reset();
+                                reset(true /* hideBouncerWhenShowing */);
                             }
                         });
                 return;
             }
         }
         mOccluded = occluded;
-        mPhoneStatusBar.updateMediaMetaData(false, animate && !occluded);
+        if (mShowing) {
+            mStatusBar.updateMediaMetaData(false, animate && !occluded);
+        }
         mStatusBarWindowManager.setKeyguardOccluded(occluded);
+<<<<<<< HEAD
         mPhoneStatusBar.getVisualizer().setOccluded(occluded);
         reset();
         if (animate && !occluded) {
             mPhoneStatusBar.animateKeyguardUnoccluding();
+=======
+
+        // If Keyguard is reshown, don't hide the bouncer as it might just have been requested by
+        // a FLAG_DISMISS_KEYGUARD_ACTIVITY.
+        reset(false /* hideBouncerWhenShowing*/);
+        if (animate && !occluded && mShowing) {
+            mStatusBar.animateKeyguardUnoccluding();
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         }
     }
 
@@ -323,8 +409,8 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
         long uptimeMillis = SystemClock.uptimeMillis();
         long delay = Math.max(0, startTime + HIDE_TIMING_CORRECTION_MS - uptimeMillis);
 
-        if (mPhoneStatusBar.isInLaunchTransition() ) {
-            mPhoneStatusBar.fadeKeyguardAfterLaunchTransition(new Runnable() {
+        if (mStatusBar.isInLaunchTransition() ) {
+            mStatusBar.fadeKeyguardAfterLaunchTransition(new Runnable() {
                 @Override
                 public void run() {
                     mStatusBarWindowManager.setKeyguardShowing(false);
@@ -332,40 +418,42 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
                     mBouncer.hide(true /* destroyView */);
                     updateStates();
                     mScrimController.animateKeyguardFadingOut(
-                            PhoneStatusBar.FADE_KEYGUARD_START_DELAY,
-                            PhoneStatusBar.FADE_KEYGUARD_DURATION, null,
+                            StatusBar.FADE_KEYGUARD_START_DELAY,
+                            StatusBar.FADE_KEYGUARD_DURATION, null,
                             false /* skipFirstFrame */);
                 }
             }, new Runnable() {
                 @Override
                 public void run() {
-                    mPhoneStatusBar.hideKeyguard();
+                    mStatusBar.hideKeyguard();
                     mStatusBarWindowManager.setKeyguardFadingAway(false);
                     mViewMediatorCallback.keyguardGone();
                     executeAfterKeyguardGoneAction();
                 }
             });
         } else {
-            if (mFingerprintUnlockController.getMode()
-                    == FingerprintUnlockController.MODE_WAKE_AND_UNLOCK_PULSING) {
-                mFingerprintUnlockController.startKeyguardFadingAway();
-                mPhoneStatusBar.setKeyguardFadingAway(startTime, 0, 240);
+            executeAfterKeyguardGoneAction();
+            boolean wakeUnlockPulsing =
+                    mFingerprintUnlockController.getMode() == MODE_WAKE_AND_UNLOCK_PULSING;
+            if (wakeUnlockPulsing) {
+                delay = 0;
+                fadeoutDuration = 240;
+            }
+            mStatusBar.setKeyguardFadingAway(startTime, delay, fadeoutDuration);
+            mFingerprintUnlockController.startKeyguardFadingAway();
+            mBouncer.hide(true /* destroyView */);
+            if (wakeUnlockPulsing) {
                 mStatusBarWindowManager.setKeyguardFadingAway(true);
-                mPhoneStatusBar.fadeKeyguardWhilePulsing();
-                animateScrimControllerKeyguardFadingOut(0, 240, new Runnable() {
-                    @Override
-                    public void run() {
-                        mPhoneStatusBar.hideKeyguard();
-                    }
-                }, false /* skipFirstFrame */);
+                mStatusBar.fadeKeyguardWhilePulsing();
+                animateScrimControllerKeyguardFadingOut(delay, fadeoutDuration,
+                        mStatusBar::hideKeyguard, false /* skipFirstFrame */);
             } else {
                 mFingerprintUnlockController.startKeyguardFadingAway();
-                mPhoneStatusBar.setKeyguardFadingAway(startTime, delay, fadeoutDuration);
-                boolean staying = mPhoneStatusBar.hideKeyguard();
+                mStatusBar.setKeyguardFadingAway(startTime, delay, fadeoutDuration);
+                boolean staying = mStatusBar.hideKeyguard();
                 if (!staying) {
                     mStatusBarWindowManager.setKeyguardFadingAway(true);
-                    if (mFingerprintUnlockController.getMode()
-                            == FingerprintUnlockController.MODE_WAKE_AND_UNLOCK) {
+                    if (mFingerprintUnlockController.getMode() == MODE_WAKE_AND_UNLOCK) {
                         if (!mScreenTurnedOn) {
                             mDeferScrimFadeOut = true;
                         } else {
@@ -381,14 +469,13 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
                     }
                 } else {
                     mScrimController.animateGoingToFullShade(delay, fadeoutDuration);
-                    mPhoneStatusBar.finishKeyguardFadingAway();
+                    mStatusBar.finishKeyguardFadingAway();
+                    mFingerprintUnlockController.finishKeyguardFadingAway();
                 }
             }
-            mStatusBarWindowManager.setKeyguardShowing(false);
-            mBouncer.hide(true /* destroyView */);
-            mViewMediatorCallback.keyguardGone();
-            executeAfterKeyguardGoneAction();
             updateStates();
+            mStatusBarWindowManager.setKeyguardShowing(false);
+            mViewMediatorCallback.keyguardGone();
         }
     }
 
@@ -411,14 +498,21 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
                 if (endRunnable != null) {
                     endRunnable.run();
                 }
-                mStatusBarWindowManager.setKeyguardFadingAway(false);
-                mPhoneStatusBar.finishKeyguardFadingAway();
+                mContainer.postDelayed(() -> mStatusBarWindowManager.setKeyguardFadingAway(false),
+                        100);
+                mStatusBar.finishKeyguardFadingAway();
                 mFingerprintUnlockController.finishKeyguardFadingAway();
                 WindowManagerGlobal.getInstance().trimMemory(
                         ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN);
                 Trace.asyncTraceEnd(Trace.TRACE_TAG_VIEW, "Fading out", 0);
             }
         }, skipFirstFrame);
+        if (mFingerprintUnlockController.getMode() == MODE_WAKE_AND_UNLOCK
+                && LatencyTracker.isEnabled(mContext)) {
+            DejankUtils.postAfterTraversal(() ->
+                    LatencyTracker.getInstance(mContext).onActionEnd(
+                            LatencyTracker.ACTION_FINGERPRINT_WAKE_AND_UNLOCK));
+        }
     }
 
     private void executeAfterKeyguardGoneAction() {
@@ -426,15 +520,21 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
             mAfterKeyguardGoneAction.onDismiss();
             mAfterKeyguardGoneAction = null;
         }
+        for (int i = 0; i < mAfterKeyguardGoneRunnables.size(); i++) {
+            mAfterKeyguardGoneRunnables.get(i).run();
+        }
+        mAfterKeyguardGoneRunnables.clear();
     }
 
     /**
      * Dismisses the keyguard by going to the next screen or making it gone.
      */
+    public void dismissAndCollapse() {
+        mStatusBar.executeRunnableDismissingKeyguard(null, null, true, false, true);
+    }
+
     public void dismiss() {
-        if (mDeviceInteractive || mDeviceWillWakeUp) {
-            showBouncer();
-        }
+        showBouncer();
     }
 
     /**
@@ -458,8 +558,13 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
      */
     public boolean onBackPressed() {
         if (mBouncer.isShowing()) {
+<<<<<<< HEAD
             mPhoneStatusBar.endAffordanceLaunch();
             reset(true);
+=======
+            mStatusBar.endAffordanceLaunch();
+            reset(true /* hideBouncerWhenShowing */, true /* isBackPressed */);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
             return true;
         }
         return false;
@@ -470,8 +575,8 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
     }
 
     private long getNavBarShowDelay() {
-        if (mPhoneStatusBar.isKeyguardFadingAway()) {
-            return mPhoneStatusBar.getKeyguardFadingAwayDelay();
+        if (mStatusBar.isKeyguardFadingAway()) {
+            return mStatusBar.getKeyguardFadingAwayDelay();
         } else {
 
             // Keyguard is not going away, thus we are showing the navigation bar because the
@@ -483,7 +588,7 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
     private Runnable mMakeNavigationBarVisibleRunnable = new Runnable() {
         @Override
         public void run() {
-            mPhoneStatusBar.getNavigationBarView().setVisibility(View.VISIBLE);
+            mStatusBar.getNavigationBarView().getRootView().setVisibility(View.VISIBLE);
         }
     };
 
@@ -492,8 +597,13 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
         boolean showing = mShowing;
         boolean occluded = mOccluded;
         boolean bouncerShowing = mBouncer.isShowing();
+<<<<<<< HEAD
         boolean bouncerDismissible = mBouncer.isFullscreenBouncer() !=
                 KeyguardBouncer.UNLOCK_SEQUENCE_FORCE_BOUNCER;
+=======
+        boolean bouncerDismissible =
+                mBouncer.isFullscreenBouncer() != KeyguardBouncer.UNLOCK_SEQUENCE_FORCE_BOUNCER;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         boolean remoteInputActive = mRemoteInputActive;
 
         if ((bouncerDismissible || !showing || remoteInputActive) !=
@@ -509,7 +619,7 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
         boolean navBarVisible = isNavBarVisible();
         boolean lastNavBarVisible = getLastNavBarVisible();
         if (navBarVisible != lastNavBarVisible || mFirstUpdate) {
-            if (mPhoneStatusBar.getNavigationBarView() != null) {
+            if (mStatusBar.getNavigationBarView() != null) {
                 if (navBarVisible) {
                     long delay = getNavBarShowDelay();
                     if (delay == 0) {
@@ -520,14 +630,14 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
                     }
                 } else {
                     mContainer.removeCallbacks(mMakeNavigationBarVisibleRunnable);
-                    mPhoneStatusBar.getNavigationBarView().setVisibility(View.GONE);
+                    mStatusBar.getNavigationBarView().getRootView().setVisibility(View.GONE);
                 }
             }
         }
 
         if (bouncerShowing != mLastBouncerShowing || mFirstUpdate) {
             mStatusBarWindowManager.setBouncerShowing(bouncerShowing);
-            mPhoneStatusBar.setBouncerShowing(bouncerShowing);
+            mStatusBar.setBouncerShowing(bouncerShowing);
             mScrimController.setBouncerShowing(bouncerShowing);
         }
 
@@ -545,22 +655,24 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
         mLastBouncerShowing = bouncerShowing;
         mLastBouncerDismissible = bouncerDismissible;
         mLastRemoteInputActive = remoteInputActive;
-
-        mPhoneStatusBar.onKeyguardViewManagerStatesUpdated();
+        mLastDeferScrimFadeOut = mDeferScrimFadeOut;
+        mStatusBar.onKeyguardViewManagerStatesUpdated();
     }
 
     /**
      * @return Whether the navigation bar should be made visible based on the current state.
      */
     protected boolean isNavBarVisible() {
-        return !(mShowing && !mOccluded) || mBouncer.isShowing() || mRemoteInputActive;
+        return (!(mShowing && !mOccluded) || mBouncer.isShowing() || mRemoteInputActive)
+                && !mDeferScrimFadeOut;
     }
 
     /**
      * @return Whether the navigation bar was made visible based on the last known state.
      */
     protected boolean getLastNavBarVisible() {
-        return !(mLastShowing && !mLastOccluded) || mLastBouncerShowing || mLastRemoteInputActive;
+        return (!(mLastShowing && !mLastOccluded) || mLastBouncerShowing || mLastRemoteInputActive)
+                && !mLastDeferScrimFadeOut;
     }
 
     public boolean shouldDismissOnMenuPressed() {
@@ -571,41 +683,28 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
         return mBouncer.interceptMediaKey(event);
     }
 
-    public void onActivityDrawn() {
-        if (mPhoneStatusBar.isCollapsing()) {
-            mPhoneStatusBar.addPostCollapseAction(new Runnable() {
-                @Override
-                public void run() {
-                    mViewMediatorCallback.readyForKeyguardDone();
-                }
-            });
-        } else {
-            mViewMediatorCallback.readyForKeyguardDone();
-        }
+    public void readyForKeyguardDone() {
+        mViewMediatorCallback.readyForKeyguardDone();
     }
 
     public boolean shouldDisableWindowAnimationsForUnlock() {
-        return mPhoneStatusBar.isInLaunchTransition();
+        return mStatusBar.isInLaunchTransition();
     }
 
     public boolean isGoingToNotificationShade() {
-        return mPhoneStatusBar.isGoingToNotificationShade();
+        return mStatusBar.isGoingToNotificationShade();
     }
 
     public boolean isSecure(int userId) {
         return mBouncer.isSecure() || mLockPatternUtils.isSecure(userId);
     }
 
-    public boolean isInputRestricted() {
-        return mViewMediatorCallback.isInputRestricted();
-    }
-
     public void keyguardGoingAway() {
-        mPhoneStatusBar.keyguardGoingAway();
+        mStatusBar.keyguardGoingAway();
     }
 
     public void animateCollapsePanels(float speedUpFactor) {
-        mPhoneStatusBar.animateCollapsePanels(CommandQueue.FLAG_EXCLUDE_NONE, true /* force */,
+        mStatusBar.animateCollapsePanels(CommandQueue.FLAG_EXCLUDE_NONE, true /* force */,
                 false /* delayed */, speedUpFactor);
     }
 
@@ -622,6 +721,6 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
     }
 
     public ViewRootImpl getViewRootImpl() {
-        return mPhoneStatusBar.getStatusBarView().getViewRootImpl();
+        return mStatusBar.getStatusBarView().getViewRootImpl();
     }
 }

@@ -21,14 +21,14 @@ import android.animation.LayoutTransition.TransitionListener;
 import android.animation.ObjectAnimator;
 import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
-import android.app.ActivityManagerNative;
+import android.annotation.DrawableRes;
+import android.app.ActivityManager;
 import android.app.StatusBarManager;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Message;
 import android.os.RemoteException;
@@ -36,30 +36,45 @@ import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
+import android.view.ContextThemeWrapper;
 import android.view.Display;
-import android.view.IDockedStackListener.Stub;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.view.WindowManagerGlobal;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.LinearLayout;
+import android.widget.FrameLayout;
+
+import com.android.settingslib.Utils;
+import com.android.systemui.Dependency;
+import com.android.systemui.DockedStackExistsListener;
 import com.android.systemui.R;
 import com.android.systemui.RecentsComponent;
+import com.android.systemui.plugins.PluginListener;
+import com.android.systemui.plugins.PluginManager;
+import com.android.systemui.plugins.statusbar.phone.NavGesture;
+import com.android.systemui.plugins.statusbar.phone.NavGesture.GestureHelper;
 import com.android.systemui.stackdivider.Divider;
 import com.android.systemui.singlehandmode.SlideTouchEvent;
 import com.android.systemui.statusbar.policy.BackButtonDrawable;
 import com.android.systemui.statusbar.policy.DeadZone;
+<<<<<<< HEAD
 import com.android.systemui.tuner.TunerService;
+=======
+import com.android.systemui.statusbar.policy.KeyButtonDrawable;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 
+<<<<<<< HEAD
 import cyanogenmod.providers.CMSettings;
 
 public class NavigationBarView extends LinearLayout implements TunerService.Tunable {
+=======
+public class NavigationBarView extends FrameLayout implements PluginListener<NavGesture> {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     final static boolean DEBUG = false;
     final static String TAG = "StatusBar/NavBarView";
 
@@ -78,9 +93,12 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
     private int mCurrentRotation = -1;
 
     boolean mShowMenu;
+    boolean mShowAccessibilityButton;
+    boolean mLongClickableAccessibilityButton;
     int mDisabledFlags = 0;
     int mNavigationIconHints = 0;
 
+<<<<<<< HEAD
     private BackButtonDrawable mBackIcon, mBackLandIcon;
     private BackButtonDrawable mBackCarModeIcon, mBackLandCarModeIcon;
     private Drawable mHomeDefaultIcon, mHomeCarModeIcon;
@@ -88,8 +106,19 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
     private Drawable mDockedIcon;
     private Drawable mImeIcon;
     private Drawable mMenuIcon;
+=======
+    private KeyButtonDrawable mBackIcon, mBackLandIcon, mBackAltIcon, mBackAltLandIcon;
+    private KeyButtonDrawable mBackCarModeIcon, mBackLandCarModeIcon;
+    private KeyButtonDrawable mBackAltCarModeIcon, mBackAltLandCarModeIcon;
+    private KeyButtonDrawable mHomeDefaultIcon, mHomeCarModeIcon;
+    private KeyButtonDrawable mRecentIcon;
+    private KeyButtonDrawable mDockedIcon;
+    private KeyButtonDrawable mImeIcon;
+    private KeyButtonDrawable mMenuIcon;
+    private KeyButtonDrawable mAccessibilityIcon;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
-    private NavigationBarGestureHelper mGestureHelper;
+    private GestureHelper mGestureHelper;
     private DeadZone mDeadZone;
     private final NavigationBarTransitions mBarTransitions;
 
@@ -109,11 +138,13 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
     private boolean mInCarMode = false;
     private boolean mDockedStackExists;
 
-    private final SparseArray<ButtonDispatcher> mButtonDisatchers = new SparseArray<>();
+    private final SparseArray<ButtonDispatcher> mButtonDispatchers = new SparseArray<>();
     private Configuration mConfiguration;
     private SlideTouchEvent mSlideTouchEvent;
 
     private NavigationBarInflaterView mNavigationInflaterView;
+    private RecentsComponent mRecentsComponent;
+    private Divider mDivider;
 
     private int mBasePaddingBottom;
     private int mBasePaddingLeft;
@@ -208,14 +239,22 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
 
         mVertical = false;
         mShowMenu = false;
+<<<<<<< HEAD
         mGestureHelper = new NavigationBarGestureHelper(context);
         mSlideTouchEvent = new SlideTouchEvent(context);
+=======
+
+        mShowAccessibilityButton = false;
+        mLongClickableAccessibilityButton = false;
+
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         mConfiguration = new Configuration();
         mConfiguration.updateFrom(context.getResources().getConfiguration());
         updateIcons(context, Configuration.EMPTY, mConfiguration);
 
         mBarTransitions = new NavigationBarTransitions(this);
 
+<<<<<<< HEAD
         mButtonDisatchers.put(R.id.back, new ButtonDispatcher(R.id.back));
         mButtonDisatchers.put(R.id.home, new ButtonDispatcher(R.id.home));
         mButtonDisatchers.put(R.id.recent_apps, new ButtonDispatcher(R.id.recent_apps));
@@ -223,14 +262,32 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
         mButtonDisatchers.put(R.id.menu_always_show, new ButtonDispatcher(R.id.menu_always_show));
         mButtonDisatchers.put(R.id.search, new ButtonDispatcher(R.id.search));
         mButtonDisatchers.put(R.id.ime_switcher, new ButtonDispatcher(R.id.ime_switcher));
+=======
+        mButtonDispatchers.put(R.id.back, new ButtonDispatcher(R.id.back));
+        mButtonDispatchers.put(R.id.home, new ButtonDispatcher(R.id.home));
+        mButtonDispatchers.put(R.id.recent_apps, new ButtonDispatcher(R.id.recent_apps));
+        mButtonDispatchers.put(R.id.menu, new ButtonDispatcher(R.id.menu));
+        mButtonDispatchers.put(R.id.ime_switcher, new ButtonDispatcher(R.id.ime_switcher));
+        mButtonDispatchers.put(R.id.accessibility_button,
+                new ButtonDispatcher(R.id.accessibility_button));
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     public BarTransitions getBarTransitions() {
         return mBarTransitions;
     }
 
+    public LightBarTransitionsController getLightTransitionsController() {
+        return mBarTransitions.getLightTransitionsController();
+    }
+
     public void setComponents(RecentsComponent recentsComponent, Divider divider) {
-        mGestureHelper.setComponents(recentsComponent, divider, this);
+        mRecentsComponent = recentsComponent;
+        mDivider = divider;
+        if (mGestureHelper instanceof NavigationBarGestureHelper) {
+            ((NavigationBarGestureHelper) mGestureHelper).setComponents(
+                    recentsComponent, divider, this);
+        }
     }
 
     public void setOnVerticalChangedListener(OnVerticalChangedListener onVerticalChangedListener) {
@@ -243,9 +300,6 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
         mSlideTouchEvent.handleTouchEvent(event);
         if (mGestureHelper.onTouchEvent(event)) {
             return true;
-        }
-        if (mDeadZone != null && event.getAction() == MotionEvent.ACTION_OUTSIDE) {
-            mDeadZone.poke(event);
         }
         return super.onTouchEvent(event);
     }
@@ -271,11 +325,11 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
     }
 
     public ButtonDispatcher getRecentsButton() {
-        return mButtonDisatchers.get(R.id.recent_apps);
+        return mButtonDispatchers.get(R.id.recent_apps);
     }
 
     public ButtonDispatcher getMenuButton() {
-        return mButtonDisatchers.get(R.id.menu);
+        return mButtonDispatchers.get(R.id.menu);
     }
 
     public ButtonDispatcher getMenuAlwaysShowButton() {
@@ -283,15 +337,23 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
     }
 
     public ButtonDispatcher getBackButton() {
-        return mButtonDisatchers.get(R.id.back);
+        return mButtonDispatchers.get(R.id.back);
     }
 
     public ButtonDispatcher getHomeButton() {
-        return mButtonDisatchers.get(R.id.home);
+        return mButtonDispatchers.get(R.id.home);
     }
 
     public ButtonDispatcher getImeSwitchButton() {
-        return mButtonDisatchers.get(R.id.ime_switcher);
+        return mButtonDispatchers.get(R.id.ime_switcher);
+    }
+
+    public ButtonDispatcher getAccessibilityButton() {
+        return mButtonDispatchers.get(R.id.accessibility_button);
+    }
+
+    public SparseArray<ButtonDispatcher> getButtonDispatchers() {
+        return mButtonDispatchers;
     }
 
     public ButtonDispatcher getSearchButton() {
@@ -301,30 +363,71 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
     public ViewGroup getDpadView() { return (ViewGroup) getCurrentView().findViewById(R.id.dpad_group); }
 
     private void updateCarModeIcons(Context ctx) {
+<<<<<<< HEAD
         mBackCarModeIcon = new BackButtonDrawable(
                 ctx.getDrawable(R.drawable.ic_sysbar_back_carmode));
         mBackLandCarModeIcon = mBackCarModeIcon;
         mHomeCarModeIcon = ctx.getDrawable(R.drawable.ic_sysbar_home_carmode);
+=======
+        mBackCarModeIcon = getDrawable(ctx,
+                R.drawable.ic_sysbar_back_carmode, R.drawable.ic_sysbar_back_carmode);
+        mBackLandCarModeIcon = mBackCarModeIcon;
+        mBackAltCarModeIcon = getDrawable(ctx,
+                R.drawable.ic_sysbar_back_ime_carmode, R.drawable.ic_sysbar_back_ime_carmode);
+        mBackAltLandCarModeIcon = mBackAltCarModeIcon;
+        mHomeCarModeIcon = getDrawable(ctx,
+                R.drawable.ic_sysbar_home_carmode, R.drawable.ic_sysbar_home_carmode);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     private void updateIcons(Context ctx, Configuration oldConfig, Configuration newConfig) {
         if (oldConfig.orientation != newConfig.orientation
                 || oldConfig.densityDpi != newConfig.densityDpi) {
-            mDockedIcon = ctx.getDrawable(R.drawable.ic_sysbar_docked);
+            mDockedIcon = getDrawable(ctx,
+                    R.drawable.ic_sysbar_docked, R.drawable.ic_sysbar_docked_dark);
         }
         if (oldConfig.densityDpi != newConfig.densityDpi) {
+<<<<<<< HEAD
             mBackIcon = new BackButtonDrawable(ctx.getDrawable(R.drawable.ic_sysbar_back));
             mBackLandIcon = mBackIcon;
+=======
+            mBackIcon = getDrawable(ctx, R.drawable.ic_sysbar_back, R.drawable.ic_sysbar_back_dark);
+            mBackLandIcon = mBackIcon;
+            mBackAltIcon = getDrawable(ctx,
+                    R.drawable.ic_sysbar_back_ime, R.drawable.ic_sysbar_back_ime_dark);
+            mBackAltLandIcon = mBackAltIcon;
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
-            mHomeDefaultIcon = ctx.getDrawable(R.drawable.ic_sysbar_home);
-            mRecentIcon = ctx.getDrawable(R.drawable.ic_sysbar_recent);
-            mMenuIcon = ctx.getDrawable(R.drawable.ic_sysbar_menu);
-            mImeIcon = ctx.getDrawable(R.drawable.ic_ime_switcher_default);
+            mHomeDefaultIcon = getDrawable(ctx,
+                    R.drawable.ic_sysbar_home, R.drawable.ic_sysbar_home_dark);
+            mRecentIcon = getDrawable(ctx,
+                    R.drawable.ic_sysbar_recent, R.drawable.ic_sysbar_recent_dark);
+            mMenuIcon = getDrawable(ctx, R.drawable.ic_sysbar_menu, R.drawable.ic_sysbar_menu_dark);
+            mAccessibilityIcon = getDrawable(ctx, R.drawable.ic_sysbar_accessibility_button,
+                    R.drawable.ic_sysbar_accessibility_button_dark);
+
+            int dualToneDarkTheme = Utils.getThemeAttr(ctx, R.attr.darkIconTheme);
+            int dualToneLightTheme = Utils.getThemeAttr(ctx, R.attr.lightIconTheme);
+            Context darkContext = new ContextThemeWrapper(ctx, dualToneDarkTheme);
+            Context lightContext = new ContextThemeWrapper(ctx, dualToneLightTheme);
+            mImeIcon = getDrawable(darkContext, lightContext,
+                    R.drawable.ic_ime_switcher_default, R.drawable.ic_ime_switcher_default);
 
             if (ALTERNATE_CAR_MODE_UI) {
                 updateCarModeIcons(ctx);
             }
         }
+    }
+
+    private KeyButtonDrawable getDrawable(Context ctx, @DrawableRes int lightIcon,
+            @DrawableRes int darkIcon) {
+        return getDrawable(ctx, ctx, lightIcon, darkIcon);
+    }
+
+    private KeyButtonDrawable getDrawable(Context darkContext, Context lightContext,
+            @DrawableRes int lightIcon, @DrawableRes int darkIcon) {
+        return KeyButtonDrawable.create(lightContext.getDrawable(lightIcon),
+                darkContext.getDrawable(darkIcon));
     }
 
     @Override
@@ -344,7 +447,17 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
         setNavigationIconHints(hints, false);
     }
 
+<<<<<<< HEAD
     private BackButtonDrawable getBackIcon(boolean carMode, boolean landscape) {
+=======
+    private KeyButtonDrawable getBackIconWithAlt(boolean carMode, boolean landscape) {
+        return landscape
+                ? carMode ? mBackAltLandCarModeIcon : mBackAltLandIcon
+                : carMode ? mBackAltCarModeIcon : mBackAltIcon;
+    }
+
+    private KeyButtonDrawable getBackIcon(boolean carMode, boolean landscape) {
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         return landscape
                 ? carMode ? mBackLandCarModeIcon : mBackLandIcon
                 : carMode ? mBackCarModeIcon : mBackIcon;
@@ -367,8 +480,14 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
         // We have to replace or restore the back and home button icons when exiting or entering
         // carmode, respectively. Recents are not available in CarMode in nav bar so change
         // to recent icon is not required.
+<<<<<<< HEAD
         BackButtonDrawable backIcon = getBackIcon(mUseCarModeUi, mVertical);
         backIcon.setImeVisible(backAlt);
+=======
+        KeyButtonDrawable backIcon = (backAlt)
+                ? getBackIconWithAlt(mUseCarModeUi, mVertical)
+                : getBackIcon(mUseCarModeUi, mVertical);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
         getBackButton().setImageDrawable(backIcon);
 
@@ -380,8 +499,15 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
             getHomeButton().setImageDrawable(mHomeDefaultIcon);
         }
 
+<<<<<<< HEAD
         final boolean showImeButton = ((hints & StatusBarManager.NAVIGATION_HINT_IME_SHOWN) != 0)
                                 && !mShowDpadArrowKeys;
+=======
+        // The Accessibility button always overrides the appearance of the IME switcher
+        final boolean showImeButton =
+                !mShowAccessibilityButton && ((hints & StatusBarManager.NAVIGATION_HINT_IME_SHOWN)
+                        != 0);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         getImeSwitchButton().setVisibility(showImeButton ? View.VISIBLE : View.INVISIBLE);
         getImeSwitchButton().setImageDrawable(mImeIcon);
 
@@ -392,6 +518,16 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
         // Update menu button in case the IME state has changed.
         setMenuVisibility(mShowMenu, true);
         getMenuButton().setImageDrawable(mMenuIcon);
+<<<<<<< HEAD
+=======
+
+        setAccessibilityButtonState(mShowAccessibilityButton, mLongClickableAccessibilityButton);
+        getAccessibilityButton().setImageDrawable(mAccessibilityIcon);
+
+        setDisabledFlags(mDisabledFlags, true);
+
+        mBarTransitions.reapplyDarkIntensity();
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     public void setDisabledFlags(int disabledFlags) {
@@ -410,7 +546,6 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
                         || ((disabledFlags & View.STATUS_BAR_DISABLE_RECENT) != 0);
         final boolean disableBack = ((disabledFlags & View.STATUS_BAR_DISABLE_BACK) != 0)
                 && ((mNavigationIconHints & StatusBarManager.NAVIGATION_HINT_BACK_ALT) == 0);
-        final boolean disableSearch = ((disabledFlags & View.STATUS_BAR_DISABLE_SEARCH) != 0);
 
         ViewGroup navButtons = (ViewGroup) getCurrentView().findViewById(R.id.nav_buttons);
         if (navButtons != null) {
@@ -435,7 +570,7 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
 
     private boolean inLockTask() {
         try {
-            return ActivityManagerNative.getDefault().isInLockTaskMode();
+            return ActivityManager.getService().isInLockTaskMode();
         } catch (RemoteException e) {
             return false;
         }
@@ -472,7 +607,8 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
     }
 
     private void setUseFadingAnimations(boolean useFadingAnimations) {
-        WindowManager.LayoutParams lp = (WindowManager.LayoutParams) getLayoutParams();
+        WindowManager.LayoutParams lp = (WindowManager.LayoutParams) ((ViewGroup) getParent())
+                .getLayoutParams();
         if (lp != null) {
             boolean old = lp.windowAnimations != 0;
             if (!old && useFadingAnimations) {
@@ -483,7 +619,7 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
                 return;
             }
             WindowManager wm = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
-            wm.updateViewLayout(this, lp);
+            wm.updateViewLayout((View) getParent(), lp);
         }
     }
 
@@ -496,8 +632,8 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
 
         mShowMenu = show;
 
-        // Only show Menu if IME switcher not shown.
-        final boolean shouldShow = mShowMenu &&
+        // Only show Menu if IME switcher and Accessibility button not shown.
+        final boolean shouldShow = mShowMenu && !mShowAccessibilityButton &&
                 ((mNavigationIconHints & StatusBarManager.NAVIGATION_HINT_IME_SHOWN) == 0);
         final boolean shouldShowAlwaysMenu = (mNavigationIconHints &
                 StatusBarManager.NAVIGATION_HINT_IME_SHOWN) == 0;
@@ -519,15 +655,29 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
         invalidate();
     }
 
+    public void setAccessibilityButtonState(final boolean visible, final boolean longClickable) {
+        mShowAccessibilityButton = visible;
+        mLongClickableAccessibilityButton = longClickable;
+        if (visible) {
+            // Accessibility button overrides Menu and IME switcher buttons.
+            setMenuVisibility(false, true);
+            getImeSwitchButton().setVisibility(View.INVISIBLE);
+        }
+
+        getAccessibilityButton().setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+        getAccessibilityButton().setLongClickable(longClickable);
+    }
+
     @Override
     public void onFinishInflate() {
         mNavigationInflaterView = (NavigationBarInflaterView) findViewById(
                 R.id.navigation_inflater);
         updateRotatedViews();
-        mNavigationInflaterView.setButtonDispatchers(mButtonDisatchers);
+        mNavigationInflaterView.setButtonDispatchers(mButtonDispatchers);
 
         getImeSwitchButton().setOnClickListener(mImeSwitcherClickListener);
 
+<<<<<<< HEAD
         mNavigationBarContents = (ViewGroup) getCurrentView().findViewById(R.id.nav_buttons);
 
         mBasePaddingLeft = mNavigationBarContents.getPaddingStart();
@@ -569,6 +719,12 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
         } catch (RemoteException e) {
             Log.e(TAG, "Failed registering docked stack exists listener", e);
         }
+=======
+        DockedStackExistsListener.register(exists -> mHandler.post(() -> {
+            mDockedStackExists = exists;
+            updateRecentsIcon();
+        }));
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     }
 
     void updateRotatedViews() {
@@ -596,9 +752,15 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
         }
         mCurrentView = mRotatedViews[rot];
         mCurrentView.setVisibility(View.VISIBLE);
+<<<<<<< HEAD
         mNavigationInflaterView.setAlternativeOrder(rot == Surface.ROTATION_90 || rot == Surface.ROTATION_270);
         for (int i = 0; i < mButtonDisatchers.size(); i++) {
             mButtonDisatchers.valueAt(i).setCurrentView(mCurrentView);
+=======
+        mNavigationInflaterView.setAlternativeOrder(rot == Surface.ROTATION_90);
+        for (int i = 0; i < mButtonDispatchers.size(); i++) {
+            mButtonDispatchers.valueAt(i).setCurrentView(mCurrentView);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
         }
         updateLayoutTransitionsEnabled();
         mCurrentRotation = rot;
@@ -606,6 +768,7 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
 
     private void updateRecentsIcon() {
         getRecentsButton().setImageDrawable(mDockedStackExists ? mDockedIcon : mRecentIcon);
+        mBarTransitions.reapplyDarkIntensity();
     }
 
     public boolean isVertical() {
@@ -615,10 +778,13 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
     public void reorient() {
         updateCurrentView();
 
-        getImeSwitchButton().setOnClickListener(mImeSwitcherClickListener);
-
         mDeadZone = (DeadZone) mCurrentView.findViewById(R.id.deadzone);
+<<<<<<< HEAD
         mDeadZone.setStartFromRight(mLeftInLandscape);
+=======
+        ((NavigationBarFrame) getRootView()).setDeadZone(mDeadZone);
+        mDeadZone.setDisplayRotation(mCurrentRotation);
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
         // force the low profile & disabled states into compliance
         mBarTransitions.init();
@@ -635,7 +801,11 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
         getHomeButton().setVertical(mVertical);
     }
 
+    public void onKeyguardOccludedChanged(boolean keyguardOccluded) {
+    }
+
     private void updateTaskSwitchHelper() {
+        if (mGestureHelper == null) return;
         boolean isRtl = (getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
         mGestureHelper.setBarState(mVertical, isRtl);
     }
@@ -752,13 +922,47 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
         }
     }
 
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        onPluginDisconnected(null); // Create default gesture helper
+        Dependency.get(PluginManager.class).addPluginListener(this,
+                NavGesture.class, false /* Only one */);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        Dependency.get(PluginManager.class).removePluginListener(this);
+        if (mGestureHelper != null) {
+            mGestureHelper.destroy();
+        }
+    }
+
+    @Override
+    public void onPluginConnected(NavGesture plugin, Context context) {
+        mGestureHelper = plugin.getGestureHelper();
+        updateTaskSwitchHelper();
+    }
+
+    @Override
+    public void onPluginDisconnected(NavGesture plugin) {
+        NavigationBarGestureHelper defaultHelper = new NavigationBarGestureHelper(getContext());
+        defaultHelper.setComponents(mRecentsComponent, mDivider, this);
+        if (mGestureHelper != null) {
+            mGestureHelper.destroy();
+        }
+        mGestureHelper = defaultHelper;
+        updateTaskSwitchHelper();
+    }
+
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
         pw.println("NavigationBarView {");
         final Rect r = new Rect();
         final Point size = new Point();
         mDisplay.getRealSize(size);
 
-        pw.println(String.format("      this: " + PhoneStatusBar.viewInfo(this)
+        pw.println(String.format("      this: " + StatusBar.viewInfo(this)
                         + " " + visibilityToString(getVisibility())));
 
         getWindowVisibleDisplayFrame(r);
@@ -782,6 +986,7 @@ public class NavigationBarView extends LinearLayout implements TunerService.Tuna
         dumpButton(pw, "home", getHomeButton());
         dumpButton(pw, "rcnt", getRecentsButton());
         dumpButton(pw, "menu", getMenuButton());
+        dumpButton(pw, "a11y", getAccessibilityButton());
 
         pw.println("    }");
     }

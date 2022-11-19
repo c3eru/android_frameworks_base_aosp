@@ -2,7 +2,10 @@
 <!--
      Copyright (C) 2012-2015 The CyanogenMod Project
      Copyright (c) 2013, The Linux Foundation. All rights reserved.
+<<<<<<< HEAD
                    2017  The LineageOS Project
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -17,6 +20,7 @@
      limitations under the License.
 -->
 <resources>
+<<<<<<< HEAD
     <!-- Notification and battery light -->
     <java-symbol type="bool" name="config_intrusiveNotificationLed" />
     <java-symbol type="bool" name="config_intrusiveBatteryLed" />
@@ -27,10 +31,13 @@
     <java-symbol type="integer" name="config_longPressOnMenuBehavior" />
     <java-symbol type="integer" name="config_longPressOnAppSwitchBehavior" />
 
+=======
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
     <!-- Package Manager -->
     <java-symbol type="array" name="config_disabledComponents" />
     <java-symbol type="array" name="config_forceEnabledComponents" />
 
+<<<<<<< HEAD
     <!-- Privacy Guard -->
     <java-symbol type="drawable" name="stat_notify_privacy_guard" />
     <java-symbol type="string" name="privacy_guard_notification" />
@@ -112,4 +119,8 @@
 
     <!-- global actions (zen mode buttons) -->
     <java-symbol type="id" name="option4" />
+=======
+    <!-- Usb drive persistent notification -->
+    <java-symbol type="bool" name="config_persistUsbDriveNotification" />
+>>>>>>> d75294d8e45e97f3c4a978cbc1986896174c6040
 </resources>
